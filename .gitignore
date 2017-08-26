@@ -1,0 +1,5 @@
+.idea
+.Python
+__pycache__/
+gamma.egg-info/
+venv/
