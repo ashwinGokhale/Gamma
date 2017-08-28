@@ -1,12 +1,10 @@
 #!/usr/bin/env python
 
 import sys
-from os import path
 from setuptools import setup
 
-
 requirements = [
-    'click>=6.0',
+    'click',
     'colorama',
     'watchdog'
 ]
