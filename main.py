@@ -48,21 +48,42 @@ def getRepos(bases):
 
 
 def getGit():
-    result = call(['which', 'git', '>', '/dev/null'])
+    result = os.system('which git > /dev/null')
     print('Something') if result == 0 else print('Nothing')
 
-# def filterBases(bases):
-#     # Filter out non directories
-#     bases = [x for x in filter(lambda path: os.path.isdir(path), bases)]
-#     bases.sort()
-#     still_subs = True
-#     while still_subs:
-#         common = os.path.commonpath(bases)
-#         if common in bases:
-#             bases = [x for x in filter(lambda path: path == common, bases)]
-#         else:
-#             still_subs = False
-#     return bases
+@click.pass_context
+def filterBases(ctx, bases):
+    # Attempt to load the dotfile
+    dotfile = None
+    try:
+        # Successfully loaded dotfile
+        dotfile = json.load(open(dotfile_path))
+    except FileNotFoundError:
+        # If dotfile not found, rebuild it
+        click.echo(click.style('~/.gamma has been corrupted. Attempting to rebuild...', fg='red'))
+        dotfile = ctx.invoke(init)
+        click.echo(click.style('~/.gamma has been rebuilt', fg='green'))
+
+    tempBases = []
+    for base in bases:
+        # Filter out non directories
+        if not os.path.isdir(base):
+            click.echo(click.style('%s is not a directory' % base, fg='red'))
+        else:
+            # Filter out bases already added
+            if dotfile['bases'].get(base):
+                click.echo(click.style('%s is already a base' % base, fg='red'))
+            else:
+                tempBases.append(base)
+
+    bases = tempBases
+
+    for i in range(len(bases)-1, 0, -1):
+        # If bases[i] is a parent, delete the subdirectory, bases[i-1]
+        if os.path.commonpath([bases[i], bases[i-1]]) == os.path.commonpath([bases[i]]): del bases[i-1]
+        # If bases[i-1] is a parent, delete the subdirectory, bases[i]
+        elif os.path.commonpath([bases[i], bases[i-1]]) == os.path.commonpath([bases[i-1]]): del bases[i]
+    return bases
 
 
 # CLI commands
@@ -75,7 +96,7 @@ def cli():
 def init():
     content = {'bases': {}}
     json.dump(content, open(dotfile_path, 'w+'), indent=4)
-    call(['eval', '"$(_GAMMA_COMPLETE=source gamma)"'])
+    os.system('eval "$(_GAMMA_COMPLETE=source gamma)"')
     return content
 
 @cli.command()
@@ -94,46 +115,38 @@ def add(ctx, bases):
         dotfile = ctx.invoke(init)
         click.echo(click.style('~/.gamma has been rebuilt', fg='green'))
 
-    # Filter out subdirectories
-    bases = [x for x in map(lambda b : os.path.abspath(os.path.expanduser(b)) ,bases)]
-
-    # Validate each base
+    # Get the absolute path of the bases and filter/validate them
+    bases = ctx.invoke(filterBases, [x for x in map(lambda b : os.path.abspath(os.path.expanduser(b)) ,bases)])
+    print(bases)
     to_index = []
     for base in bases:
-        # Check to see if the base is not already added
-        if not base in dotfile['bases']:
-            # Check to see if the base is a directory
-            if os.path.isdir(base):
-                # Check to see if the base is not contained in another base
-                is_subdir = False
-                for b in dotfile['bases'].keys():
-                    # If the base trying to be added is a subdirectory of an existing base, skip it
-                    if os.path.commonpath([b]) == os.path.commonpath([b, base]):
-                        click.echo(click.style('%s is inside another base: %s' % (base, b), fg='red'))
-                        is_subdir = True
-                        break
-                    # If the base trying to be added is a parent directory of an existing base, delete the sub directory
-                    if os.path.commonpath([base]) == os.path.commonpath([b, base]):
-                        click.echo(click.style('%s is inside another base: %s' % (b, base), fg='red'))
-                        if to_index.index(b) >= 0: del to_index[to_index.index(b)]
-                        if b in dotfile['bases']: del dotfile['bases'][b]
-                        break
-                # If base is a unique directory, not in another base, add it to the dotfile
-                if not is_subdir:
-                    dotfile['bases'][base] = {'repos': {}}
-                    to_index.append(base)
-            else:
-                click.echo(click.style('%s is not a directory' % base, fg='red'))
-        else :
-            click.echo(click.style('%s is already a base' % base, fg='red'))
+        # Check to see if the base is not contained in another base
+        is_subdir = False
+        for b in dotfile['bases'].keys():
+            # If the base trying to be added is a subdirectory of an existing base, skip it
+            if os.path.commonpath([b]) == os.path.commonpath([b, base]) and b != base:
+                click.echo(click.style('%s is inside another base: %s' % (base, b), fg='red'))
+                is_subdir = True
+                break
+            # If the base trying to be added is a parent directory of an existing base, delete the sub directory
+            if os.path.commonpath([base]) == os.path.commonpath([b, base]) and b != base:
+                click.echo(click.style('%s is inside another base: %s' % (b, base), fg='red'))
+                if b in to_index >= 0: to_index.remove(b)
+                if b in dotfile['bases']: del dotfile['bases'][b]
+                break
+        # If base is a unique directory, not in another base, add it to the dotfile
+        if not is_subdir:
+            dotfile['bases'][base] = {'repos': {}}
+            to_index.append(base)
 
     # Index the new bases for repos
     dotfile, repo_names = findRepos(to_index, dotfile)
 
-    # Format the output
+    # Format the output and print it
     for base in repo_names.keys():
+        click.echo(click.style('Base added: %s' % base, fg='green'))
         names = '\n'.join(['  %d) %s' % (num+1, name) for num, name in enumerate(repo_names[base])])
-        if names: click.echo(click.style('Repos added: \n%s' % names, fg='green'))
+        click.echo(click.style('Repos added: \n%s' % (names if names else '  None'), fg='green'))
 
     # Write the dotfile back
     json.dump(dotfile, open(dotfile_path, 'w'), indent=4)
@@ -173,4 +186,12 @@ def list(bases):
         click.echo(repo)
 
 # if __name__ == '__main__':
-#     print(filterBases([x for x in map(lambda b : os.path.abspath(os.path.expanduser(b)) ,['.', '../../', './main.py' , '../', '~/Google Drive'])]))
+    print(add(None, [
+        '~/Google Drive',
+        '.',
+        '~/Dropbox/gitHub/Gamma/venv',
+        '~/Dropbox/gitHub',
+        '~/Dropbox/gitHub/Gamma/venv/pip-selfcheck.json',
+        '~/Dropbox/gitHub/Gamma',
+        '~/Dropbox'
+    ]))
