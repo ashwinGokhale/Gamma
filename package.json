@@ -1,0 +1,36 @@
+{
+  "name": "gamma",
+  "version": "1.0.0",
+  "description": "A tool for managing all git repos on your local machine",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "rimraf dist/ && babel ./ --out-dir dist/ --ignore ./node_modules,./.babelrc,./package.json,./npm-debug.log --copy-files",
+    "start": "npm run build && npm i -g"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ashwinGokhale/Gamma.git"
+  },
+  "author": "Ashwin Gokhale",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/ashwinGokhale/Gamma/issues"
+  },
+  "homepage": "https://github.com/ashwinGokhale/Gamma#readme",
+  "bin": {
+    "gamma": "./dist/src/index.js"
+  },
+  "devDependencies": {
+    "babel-cli": "^6.26.0",
+    "babel-preset-es2015": "^6.24.1",
+    "rimraf": "^2.6.2"
+  },
+  "dependencies": {
+    "chalk": "^2.1.0",
+    "commander": "^2.11.0",
+    "expand-tilde": "^2.0.2",
+    "glob": "^7.1.2",
+    "omelette": "^0.4.5"
+  }
+}

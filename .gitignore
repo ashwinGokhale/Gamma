@@ -1,5 +1,4 @@
-.idea
-.Python
-__pycache__/
-gamma.egg-info/
-venv/
+build
+node_modules
+.DS_Store
+npm-debug.log
