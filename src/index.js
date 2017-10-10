@@ -1,14 +1,32 @@
-#!/usr/local/bin/babel-node
+#!/usr/bin/env node
+'use strict'
 
 import program from 'commander';
-import omelette from 'omelette';
+// import omelette from 'omelette';
 import et from 'expand-tilde';
 import path from 'path';
 import chalk from 'chalk';
 import fs from 'fs';
 import glob from 'glob';
 
+// Path to the dotfile
 const dotpath = et('~/.gamma.json');
+
+// Autocomplete suggestions
+// const complete = omelette('gamma').tree({
+	// list: null,
+	// search: null,
+	// init: null,
+	// add: null,
+//     remove: Object.keys(require(dotpath)['bases'])
+// });
+// const complete = omelette`gamma|gam ${['list','search','init','add','remove']}`
+// complete.on('$remove', (line, { reply }) => {
+// 	console.log(line);
+// 	// if(~fragment.indexOf('remove'))
+// 		// reply(Object.keys(require(dotpath)['bases']))
+// 	reply(line);
+// });
 
 // Helper functions
 const isChildOf = (child, parent) => (child !== parent) && parent.split('/').every((t, i) => child.split('/')[i] === t);
@@ -66,7 +84,12 @@ const filter = (bases = []) => {
 	let tree = {};
 	let paths = [];
 	bases.forEach(base => {
-		let dirs = path.resolve(et(base)).split(path.sep);
+		base = path.resolve(et(base));
+		if(!fs.existsSync(base)){
+			console.log(chalk.red(`Base: ${base} does not exist`));
+			return;
+		}
+		let dirs = base.split(path.sep);
 		for (let i = 0; i < dirs.length; i++ ){
 			if (tree[dirs[i]]){
 				if (tree[dirs[i]]['marked'])
@@ -82,14 +105,12 @@ const filter = (bases = []) => {
 			}
 		}
 	});
-
-	return paths
+	return paths;
 }
 
 
 // CLI commands
 const add = (base = '', bases = []) => {
-	
 	//Adds the bases and finds all repos in it.
 	// Attempt to load the dotfile
 	let repos, repo_names = [];
@@ -102,8 +123,13 @@ const add = (base = '', bases = []) => {
 	else
 		dotfile = require(dotpath);
 
+	bases = bases.concat(base);
+
+
+	// TODO: Add a spinner because glob is slow
+
 	// Get the absolute path of the bases and filter/validate them
-	bases = filter(bases.concat(base).map(b => path.resolve(et(b))).sort((a, b) => a.length - b.length));
+	bases = filter(bases.map(b => path.resolve(et(b))).sort((a, b) => a.length - b.length));
 	let to_index = [];
 	bases.forEach(base => { 
 		// Check to see if the base is not contained in another base
@@ -178,26 +204,33 @@ const remove = (base = '', bases = []) => {
 
 
 const init = () => {
+	// Add the autocomplete
+	complete.setupShellInitFile();
 	// Initializes the gamma dofile and persists to disk
-	let content = {'bases': {}};
-	fs.writeFile(dotpath,JSON.stringify(dotfile, null, '\t'), 'utf8', (err) => {if(err){console.error(err)}});
+	let content = {'bases': {},'context':{'base': '', 'repo': ''}};
+	fs.writeFile(dotpath,JSON.stringify(content, null, '\t'), 'utf8', (err) => {if(err){console.error(err)}});
 	return content;
 }
 
-const listBases = (bases = []) => { getRepos(bases).forEach(base => console.log(base)); }
+const listRepos = (bases = []) => { getRepos(bases).forEach(base => console.log(base)); }
 
-// omelette('gamma').tree({
-// 	init: [],
-//     list: [],
-//     add: [],
-//     remove: []
-// }).init();
+const search = (base = '') => {glob.sync(`${path.resolve(et(base))}/**/.git`, {dot: true}).forEach(repo_path => console.log(repo_path.slice(0, -5)));}
+
+const listBases = () =>{
+	Object.keys(require(dotpath)['bases']).forEach(base => console.log(base));
+}
 
 program
 .command('list [bases...]')
 .alias('l')
 .description('List all git repos by base')
-.action(listBases);
+.action(listRepos);
+
+program
+.command('search <base>')
+.alias('s')
+.description('Returns the paths for all git repos in the given base')
+.action(search);
 
 program
 .command('init')
@@ -217,4 +250,11 @@ program
 .action(remove)
 .description('Removes the specified bases from Gamma');
 
+program
+.command('context')
+.command('list')
+.command('set')
+
 program.parse(process.argv);
+
+console.log(program.context);
