@@ -274,10 +274,13 @@ const set = (options) => {
 		processContextRepo(options.repo, dotfile);
 }
 
-const run = () => {
+const run = (options) => {
 	let [dotfile, error] = getDotfile();
 	if (error)
 		return;
+	
+	if (options.command)
+		return runCommand(options.command, dotfile);
 
 	let i = rl.createInterface(process.stdin, process.stdout, null);
 	i.question("Command: ", (command = '') => {
@@ -324,7 +327,9 @@ const initProgram = () => {
 
 	program
 	.command('run')
+	.option('-c, --command <Command>', 'Runs a git command in the context repo. NOTE: Put command inside of single quotes.')
 	.description('Runs a git command in the context')
+	.allowUnknownOption(true)
 	.action(run);
 }
 
