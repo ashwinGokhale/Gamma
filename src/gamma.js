@@ -220,8 +220,7 @@ const add = (base = '', bases = []) => {
 
 const remove = (base = '', bases = []) => {
 	// Removes a base, including all repos in it
-	let dotfile, error;
-	[dotfile, error] = getDotfile();
+	let [dotfile, error] = getDotfile();
 	if (error)
 		return dotfile;
 
@@ -290,6 +289,26 @@ const run = (options) => {
 	});
 }
 
+const changeDirectory = (repo) => {
+	let [dotfile, error] = getDotfile();
+	if (error)
+		return;
+	console.log(repo);
+
+	if (repo) {
+		let contextBase = dotfile['context']['base'];
+		let repoKeys = Object.keys(dotfile['bases'][contextBase]['repos']);
+		let repoIndex = repoKeys.indexOf(repo);
+		if (repoIndex < 0)
+			return console.log(chalk.red(`${repo} is not repo in the context base: ${contextBase}`));
+		let repoPath = dotfile['bases'][contextBase]['repos'][repoKeys[repoIndex]]['path'];
+		console.log(`Repo path: ${repoPath}`);
+		return process.chdir(repoPath);
+	}
+	
+	return shell.cd(dotfile['context']['repo']['path'])
+}
+
 const initProgram = () => {
 	program
 	.command('list [bases...]').alias('l')
@@ -331,6 +350,11 @@ const initProgram = () => {
 	.description('Runs a git command in the context')
 	.allowUnknownOption(true)
 	.action(run);
+
+	program
+	.command('cd [repo]')
+	.description('Change directory into the repo. By default, cd into the context repo ')
+	.action(changeDirectory)
 }
 
 initProgram();
