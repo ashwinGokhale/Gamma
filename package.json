@@ -1,5 +1,5 @@
 {
-  "name": "gamma",
+  "name": "gamma-cli",
   "version": "1.0.0",
   "description": "A tool for managing all git repos on your local machine",
   "main": "gamma.js",
@@ -29,9 +29,11 @@
   "dependencies": {
     "chalk": "^2.1.0",
     "commander": "^2.11.0",
-    "commander-tabtab": "^0.1.0",
     "expand-tilde": "^2.0.2",
+    "fuzzy": "^0.1.3",
     "glob": "^7.1.2",
+    "inquirer": "^3.3.0",
+    "omelette": "^0.4.5",
     "readline": "^1.3.0",
     "shelljs": "^0.7.8"
   }
