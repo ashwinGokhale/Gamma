@@ -121,14 +121,12 @@ export const processContextRepo = (repo, dotfile) => {
 }
 
 export const runCommand = (command = '', dotfile = {}) => {
-	console.log(command);
 	command = command.replace('git', '').trim();
 	let repo = dotfile['context']['repo'];
 	if (!Object.getOwnPropertyNames(repo).length)
 		return console.log(chalk.red(`Context repo is missing!`));
 	
 	repo = repo['path'].replace(/ /g, '\\ ');
-	
 	command = `git -C ${repo} ${command}`;
 	
 	let code = shell.exec(command).code;
