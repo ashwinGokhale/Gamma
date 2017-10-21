@@ -1,16 +1,7 @@
 #!/usr/bin/env node
-'use strict'
 
 import program from 'commander';
-import et from 'expand-tilde';
-import path from 'path';
-import chalk from 'chalk';
-import fs from 'fs';
-import glob from 'glob';
-import shell from 'shelljs';
-import rl from 'readline';
-import {list, search, init, add, remove, set, run, install} from './commands';
-
+import {list, search, init, add, remove, set, run, install, rebase, daemon} from './commands';
 
 const initProgram = () => {
 	program
@@ -26,7 +17,7 @@ const initProgram = () => {
 	.action(search);
 	
 	program
-	.command('init').alias('ini')
+	.command('init').alias('i')
 	.description('Initializes the gamma dotfile')
 	.action(init);
 
@@ -47,9 +38,9 @@ const initProgram = () => {
 	
 	program
 	.command('set')
-	.option('-b, --base <base>', 'Sets the base of the context')
-	.option('-r, --repo <repo>', 'Sets the repo within the base of the context')
-	.description('Set the base or repo of the context')
+	.option('-b, --base <base>', 'Sets the base of the context. Can fuzzy match base')
+	.option('-r, --repo <repo>', 'Sets the repo within the base of the context. Can fuzy match repo')
+	.description('Set the base and/or repo of the context')
 	.action(set);
 
 	program
@@ -58,6 +49,16 @@ const initProgram = () => {
 	.description('Runs a git command in the context')
 	.allowUnknownOption(true)
 	.action(run);
+
+	program
+	.command('rebase [bases...]').alias('re')
+	.description('Rescan base(s) and removes any base or repo that does not exist anymore')
+	.action(rebase);
+
+	program
+	.command('daemon').alias('d')
+	.description('Runs background process that maintains all bases and their repos')
+	.action(daemon);
 }
 
 initProgram();
