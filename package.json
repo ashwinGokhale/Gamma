@@ -1,6 +1,6 @@
 {
   "name": "gamma-cli",
-  "version": "1.0.0",
+  "version": "0.0.2",
   "description": "A tool for managing all git repos on your local machine",
   "main": "gamma.js",
   "scripts": {
