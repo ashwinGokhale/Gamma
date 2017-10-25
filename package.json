@@ -1,8 +1,7 @@
 {
   "name": "gamma-cli",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "A tool for managing all git repos on your local machine",
-  "main": "gamma.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "rimraf dist/ && babel ./src --out-dir dist/ --minified --compact --ignore ./node_modules,./.babelrc,./package.json,./npm-debug.log --copy-files",
@@ -42,7 +41,6 @@
     "glob": "^7.1.2",
     "inquirer": "^3.3.0",
     "log-update": "^2.2.0",
-    "omelette": "^0.4.5",
     "ps-node": "^0.1.6",
     "readline": "^1.3.0",
     "shelljs": "^0.7.8",

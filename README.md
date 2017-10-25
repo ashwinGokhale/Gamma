@@ -18,7 +18,8 @@ $ gamma --help
 
   Options:
 
-    -h, --help  output usage information
+    -V, --version  output the version number
+    -h, --help     output usage information
 
 
   Commands:
@@ -29,7 +30,7 @@ $ gamma --help
     install|ins                      Installs the 'ad' command, which cd's into a git repo fuzzy matching a repo in the context base
     add|a <base> [otherBases...]     Adds the specified bases as well as all git repos in them
     remove|r <base> [otherBases...]  Removes the specified bases from Gamma
-    set [options]                    Set the base or repo of the context
+    set [options]                    Set the base and/or repo of the context
     run [options]                    Runs a git command in the context
     rebase|re [bases...]             Rescan base(s) and removes any base or repo that does not exist anymore
     daemon|d                         Runs background process that maintains all bases and their repos
