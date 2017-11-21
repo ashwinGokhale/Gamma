@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import program from 'commander';
-import {list, search, init, add, remove, set, run, install, rebase, daemon} from './commands';
+import {list, search, init, add, remove, set, run, install, rebase, daemon, status} from './commands';
 
 const initProgram = () => {
 	program
@@ -43,13 +43,13 @@ const initProgram = () => {
 	.command('set')
 	.option('-b, --base <base>', 'Sets the base of the context. Can fuzzy match base')
 	.option('-r, --repo <repo>', 'Sets the repo within the base of the context. Can fuzy match repo')
-	.description('Set the base and/or repo of the context')
+	.description('Set the base and/or repo of the context. Supports fuzzy matching')
 	.action(set);
 
 	program
 	.command('run')
 	.option('-c, --command <command>', 'Runs a git command in the context repo. NOTE: Put command inside of single quotes.')
-	.description('Runs a git command in the context')
+	.description('Runs a git command in the context repo')
 	.allowUnknownOption(true)
 	.action(run);
 
@@ -62,6 +62,11 @@ const initProgram = () => {
 	.command('daemon').alias('d')
 	.description('Runs background process that maintains all bases and their repos')
 	.action(daemon);
+
+	program
+	.command('status').alias('st')
+	.description('Prints the status of each repo in each base')
+	.action(status);
 }
 
 initProgram();

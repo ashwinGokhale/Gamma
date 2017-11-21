@@ -6,6 +6,7 @@ import glob from 'glob';
 import shell from 'shelljs';
 import rl from 'readline';
 import fuzzy from 'fuzzy';
+import { rebase } from './commands';
 
 export const dotpath = et('~/.gamma.json');
 
@@ -85,7 +86,16 @@ export const filter = (bases = []) => {
 	return paths;
 }
 
-export const listBases = (dotfile) => Object.keys(dotfile['bases']).forEach(base => console.log(base));
+export const listBases = (dotfile) => {
+	for(let base of Object.keys(dotfile['bases'])) {
+		if (!fs.existsSync(base)) {
+			rebase();
+			break;
+		}
+	}
+	
+	Object.keys(dotfile['bases']).forEach(base => console.log(base)) 
+};
 
 export const listRepos = (bases = []) => getRepos(bases).forEach(base => console.log(base));
 
@@ -123,8 +133,10 @@ export const processContextRepo = (repo, dotfile) => {
 export const runCommand = (command = '', dotfile = {}) => {
 	command = command.replace('git', '').trim();
 	let repo = dotfile['context']['repo'];
-	if (!Object.getOwnPropertyNames(repo).length)
+	if (!Object.getOwnPropertyNames(repo).length) {
+		rebase();
 		return console.log(chalk.red(`Context repo is missing!`));
+	}
 	
 	repo = repo['path'].replace(/ /g, '\\ ');
 	command = `git -C ${repo} ${command}`;
@@ -133,6 +145,27 @@ export const runCommand = (command = '', dotfile = {}) => {
 	if (code !== 0)
 		return console.log(chalk.red(`Command: ${command} failed!`));
 	return code;
+}
+
+// Check if the repo has no commits yet
+export const repoEmpty = (repo) => {
+	let output = shell.exec(`git -C ${repo} status`, {silent: true});
+	if (output.code === 0 && output.stdout.includes('Initial commit')) return true;
+	return false;
+}
+
+// Check if there are edited files
+export const commitPending = (repo) => {
+	let output = shell.exec(`git -C ${repo} status`, {silent: true});
+	if (output.stdout.includes('Changes to be committed') || output.stdout.includes('Changes not staged for commit') || output.stdout.includes('Untracked files')) return true;
+	return false;
+}
+
+// Check if there are commits needed to be pushed
+export const unpushed = (repo) => {
+	let output = shell.exec(`git -C ${repo} log --branches --not --remotes`, {silent: true});
+	if (output.stderr || (output.code === 0 && output.stdout.length === 0)) return false;
+	return true;
 }
 
 export const getDotfile = () => {
@@ -147,6 +180,7 @@ export const getDotfile = () => {
 }
 
 export const dumpDotfile = (dotfile) => {
-	fs.writeFile(dotpath,JSON.stringify(dotfile, null, ''), 'utf8', err => {if(err){console.error(err)}});
+	// fs.writeFile(dotpath,JSON.stringify(dotfile, null, ''), 'utf8', err => {if(err){console.error(err)}});
+	fs.writeFile(dotpath,JSON.stringify(dotfile, null, '\t'), 'utf8', err => {if(err){console.error(err)}});
 	return dotfile;
 }

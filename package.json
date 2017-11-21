@@ -1,11 +1,12 @@
 {
   "name": "gamma-cli",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "description": "A tool for managing all git repos on your local machine",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "rimraf dist/ && babel ./src --out-dir dist/ --minified --compact --ignore ./node_modules,./.babelrc,./package.json,./npm-debug.log --copy-files",
-    "start": "npm run build"
+    "start": "gulp",
+    "postinstall": "gamma init"
   },
   "repository": {
     "type": "git",
@@ -35,6 +36,7 @@
   "dependencies": {
     "chalk": "^2.1.0",
     "chokidar": "^1.7.0",
+    "cliff": "^0.1.10",
     "commander": "^2.11.0",
     "expand-tilde": "^2.0.2",
     "fuzzy": "^0.1.3",

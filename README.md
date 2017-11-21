@@ -36,16 +36,19 @@ $ gamma --help
     daemon|d                         Runs background process that maintains all bases and their repos
 ```
 
-## How does it work?
-Gamma keeps track of "base" directories and from those, it tracks all git repos in them.  
-Gamma also has something called the "context" which contains the default base directory and default repo.  
-The context is used to resolve naming conflicts for commands like 'run'
+## What is it? How does it work?
+I saw a project, [Pro](https://github.com/trishume/pro), and have been rewriting it in Javascript with a few changes.  
+Gamma keeps track of "base" directories and from those, it tracks all git repos in them. It resolves naming conflicts, runs commands, and formats output by grouping repos by their base folder.  
+Gamma also has something called the "context" which contains the default base directory and default repo, which can be set through fuzzy matching.
 
 ## GD command
 You can cd into any repo in any base after running `gamma install`. This will install the "gd" (you can change the name) command in your .bashrc and/or .zshrc files. After that, just run `gd <fuzzy matched repo>`
 
-## Contributing
+## Todo:
+  * Run daemon on startup
+  * Optimize status command
 
+## Contributing
 1. Fork it
 2. Create your feature branch (`git checkout -b new-feature`)
 3. Commit your changes (`git commit -am 'Added some new feature'`)

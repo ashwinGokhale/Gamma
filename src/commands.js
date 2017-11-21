@@ -10,8 +10,9 @@ import fuzzy from 'fuzzy';
 import chokidar from 'chokidar';
 import ps from 'ps-node';
 import logUpdate from 'log-update';
-import {spawn} from 'child_process';
-import {dotpath, isChildOf, dirs, findRepos, getRepos, filter, listBases, listRepos, processContextBase, processContextRepo, runCommand, getDotfile, getBase, dumpDotfile} from './helpers';
+import cliff from 'cliff';
+import { spawn, fork } from 'child_process';
+import { dotpath, isChildOf, dirs, findRepos, getRepos, filter, listBases, listRepos, processContextBase, processContextRepo, runCommand, getDotfile, getBase, dumpDotfile, unpushed, repoEmpty, commitPending } from './helpers';
 
 // CLI commands
 export const add = (base = '', bases = []) => {
@@ -21,7 +22,6 @@ export const add = (base = '', bases = []) => {
 	let [dotfile] = getDotfile();
 
 	bases = bases.concat(base);
-
 
 	// TODO: Add a spinner because glob is slow
 	logUpdate(chalk.yellow('Adding bases...'));
@@ -71,6 +71,9 @@ export const add = (base = '', bases = []) => {
 
 
 export const remove = (base = '', bases = []) => {
+	// Asynchronously rebase
+	spawn('gamma', ['rebase'], {detached:true, stdio:'ignore'}).unref();
+
 	// Removes a base, including all repos in it
 	let [dotfile, error] = getDotfile();
 	if (error)
@@ -102,16 +105,22 @@ export const init = () => {
 }
 
 export const list = (bases = [], options = {}) => {
+	// Asynchronously rebase
+	spawn('gamma', ['rebase'], {detached:true, stdio:'ignore'}).unref();
+
 	let [dotfile] = getDotfile();
 	if (options.bases)
 		return listBases(dotfile);
 	if (options.context)
-		return console.log(`Base: ${dotfile['context']['base'] ? dotfile['context']['base'] : ''}\nRepo: ${dotfile['context']['repo']['name'] ? dotfile['context']['repo']['name'] : ''}`)
+		return console.log(`Base: ${dotfile['context']['base'] ? dotfile['context']['base'] : ''}\nRepo: ${dotfile['context']['repo']['name'] ? dotfile['context']['repo']['name'] : ''}`);
 
 	return listRepos(bases);
 }
 
 export const search = (base = '') => {
+	// Asynchronously rebase
+	spawn('gamma', ['rebase'], {detached:true, stdio:'ignore'}).unref();
+
 	let [dotfile, error] = getDotfile();
 	let repos = [];
 	Object.keys(dotfile['bases']).forEach(b => Object.entries(dotfile['bases'][b]['repos']).forEach(key => repos.push(key[1]['path'])));
@@ -138,23 +147,20 @@ export const set = (options) => {
 	}
 }
 
-export const run = (...options) => {
+export const run = async (...options) => {
 	let [dotfile, error] = getDotfile();
-	if (error)
-		return;
+	if (error) return;
 
 	options = options[options.length-1];
 
 	if (options.command && typeof options.command === 'string')
 		return runCommand(options.command, dotfile);
 
-	inquirer.prompt({type:'input',name:'command',message:'Command: '})
-	.then(answer => {
-		if (answer){
-			console.log(answer.command);
-			runCommand(answer.command, dotfile)
-		}
-	});
+	while (true) {
+		let {command} = await inquirer.prompt({type:'input',name:'command',message:'Command: '})
+		if (command && command != 'q' && command != 'quit') runCommand(command, dotfile);
+		else return;
+	}	
 }
 
 export const install = async () => {
@@ -195,10 +201,13 @@ export const rebase = (bases = []) => {
 		return dotfile;
 
 	let dotBases = Object.keys(dotfile['bases']);
+
+	// Get all bases in the dotfile
 	bases = bases.length ? bases.map(b => path.resolve(et(b))).filter(base => dotfile['bases'][base]) : dotBases;
 
 	logUpdate(chalk.yellow(`Reindexing bases...`))
 
+	// Get the original bases with their repos
 	let original = {};
 	Object.keys(dotfile['bases']).forEach(base => original[base] = Object.keys(dotfile['bases'][base]['repos']));
 
@@ -209,14 +218,25 @@ export const rebase = (bases = []) => {
 	// Format the output and print it
 	logUpdate.clear();
 	Object.keys(original).forEach(base => {
+		// Convert list of repos added and repos removed into a formatted string
 		let reposAdded = repo_names[base].filter(b => !original[base].includes(b)).map((name, num) => `  ${num+1}) ${name}`).join('\n');
 		let reposRemoved = original[base].filter(b => !repo_names[base].includes(b)).map((name, num) => `  ${num+1}) ${name}`).join('\n');
-		console.log(`Base reindexed: ${base}`);
-		console.log(chalk.green(`Repos added: \n${reposAdded ? reposAdded : '  None'}`));
+		if (fs.existsSync(base)) {
+			console.log(`Base reindexed: ${base}`);
+			console.log(chalk.green(`Repos added: \n${reposAdded ? reposAdded : '  None'}`));
+		}
+		else {
+			console.log(chalk.red(`${base} does not exist`));
+			delete dotfile['bases'][base];
+		}
 		console.log(chalk.red(`Repos removed: \n${reposRemoved ? reposRemoved : '  None'}`));
 	});
 
-	
+	// Check if context base exits
+	if (dotfile['context']['base'] && !fs.existsSync(dotfile['context']['base'])) dotfile['context'] = {'base': '', 'repo': ''};
+
+	// Check if context repo exits
+	if (dotfile['context']['repo'] && !fs.existsSync(dotfile['context']['repo']['path'])) dotfile['context']['repo'] = {};
 
 	// Write the dotfile back
 	return dumpDotfile(dotfile);
@@ -270,5 +290,37 @@ export const daemon = () => {
 				break;
 			}
 		});
+	});
+}
+
+export const status = () => {
+	let [dotfile, error] = getDotfile();
+	if (error) return dotfile;
+
+	// Asynchronously rebase
+	spawn('gamma', ['rebase'], {detached:true, stdio:'ignore'}).unref();
+
+	// Compute the length of the longest repo/base
+	let names = [];
+	Object.keys(dotfile['bases']).forEach(base => Object.keys(dotfile['bases'][base]['repos']).concat(`Base: ${base}`).forEach(repo => names.push(repo)));
+	let pad = names.reduce((r,s) => r > s.length ? r : s.length, 0);
+
+	// Print the status of each repo in each base
+	Object.keys(dotfile['bases']).forEach(base => {
+		// Print row header
+		console.log(chalk.magenta(`Base: ${base}${' '.repeat(Math.abs(pad-base.length+5))}Status`));
+		// Print the status of each repo
+		Object.keys(dotfile['bases'][base]['repos']).forEach(repoName => {
+			let repo = dotfile['bases'][base]['repos'][repoName]['path'].replace(/ /g, '\\ ');
+			let messages = [];
+			// Add the status message
+			if (repoEmpty(repo)) messages.push(chalk.green('Empty'));
+			if (commitPending(repo)) messages.push(chalk.blue('Uncommitted'));
+			if (unpushed(repo)) messages.push(chalk.yellow('Unpushed'));
+			if(!messages.length) messages.push(chalk.green('Up to date'));
+			// Print the formatted status message
+			console.log(`${repoName}${' '.repeat(Math.abs(pad-repoName.length+11))}${messages.join(' | ')}`);
+		});
+		console.log();
 	});
 }
