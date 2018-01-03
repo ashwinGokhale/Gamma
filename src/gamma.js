@@ -5,7 +5,7 @@ import {list, search, init, add, remove, set, run, install, rebase, daemon, stat
 
 const initProgram = () => {
 	program
-    .version('0.0.4')
+    .version('0.0.6')
     
     program
 	.command('list [bases...]').alias('l')
