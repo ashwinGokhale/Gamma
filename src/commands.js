@@ -248,6 +248,7 @@ export const daemon = () => {
 		if (processes.length > 1) return;
 
 		// TODO: Create daemon on startup
+		// TODO: Add useful logging output
 		// let startup;
 		// try {
 		// 	startup = require('user-startup');
@@ -259,7 +260,7 @@ export const daemon = () => {
 		// 	'gamma_daemon', // id
 		// 	'gamma', // cmd
 		// 	['daemon'], // args
-		// 	'/Users/ashwin/Desktop/daemon.log' // out
+		// 	'/Users/$USER/Desktop/daemon.log' // out
 		// )
 		console.log(`Gamma deamon started`);
 		chokidar.watch(Object.keys(getDotfile()[0]['bases']), {ignored: /(^|\/)\.[^\/\.]|(node_modules)/gm})

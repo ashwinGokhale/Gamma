@@ -191,7 +191,7 @@ export const getDotfile = () => {
 }
 
 export const dumpDotfile = (dotfile) => {
-	// fs.writeFile(dotpath,JSON.stringify(dotfile, null, ''), 'utf8', err => {if(err){console.error(err)}});
-	fs.writeFile(dotpath,JSON.stringify(dotfile, null, '\t'), 'utf8', err => {if(err){console.error(err)}});
+	fs.writeFile(dotpath,JSON.stringify(dotfile, null, ''), 'utf8', err => {if(err){console.error(err)}});
+	// fs.writeFile(dotpath,JSON.stringify(dotfile, null, '\t'), 'utf8', err => {if(err){console.error(err)}});
 	return dotfile;
 }

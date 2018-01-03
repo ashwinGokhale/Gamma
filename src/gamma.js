@@ -40,14 +40,14 @@ const initProgram = () => {
 	.action(remove);
 	
 	program
-	.command('set')
+	.command('set').alias('se')
 	.option('-b, --base <base>', 'Sets the base of the context. Can fuzzy match base')
 	.option('-r, --repo <repo>', 'Sets the repo within the base of the context. Can fuzy match repo')
 	.description('Set the base and/or repo of the context. Supports fuzzy matching')
 	.action(set);
 
 	program
-	.command('run')
+	.command('run').alias('ru')
 	.option('-c, --command <command>', 'Runs a git command in the context repo. NOTE: Put command inside of single quotes.')
 	.description('Runs a git command in the context repo')
 	.allowUnknownOption(true)
