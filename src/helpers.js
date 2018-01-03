@@ -3,10 +3,12 @@ import path from 'path';
 import chalk from 'chalk';
 import fs from 'fs';
 import glob from 'glob';
-import shell from 'shelljs';
+import shell, { error } from 'shelljs';
 import rl from 'readline';
 import fuzzy from 'fuzzy';
 import { rebase } from './commands';
+import { spawn, execSync } from 'child_process';
+
 
 export const dotpath = et('~/.gamma.json');
 
@@ -149,23 +151,32 @@ export const runCommand = (command = '', dotfile = {}) => {
 
 // Check if the repo has no commits yet
 export const repoEmpty = (repo) => {
-	let output = shell.exec(`git -C ${repo} status`, {silent: true});
-	if (output.code === 0 && output.stdout.includes('Initial commit')) return true;
+	try {
+		let stdout = execSync(`git -C ${repo} status`).toString();	
+		if (stdout.includes('Initial commit')) return true;
+	} catch (error) {}
 	return false;
+	// let output = shell.exec(`git -C ${repo} status`, {silent: true});
+	// if (output.code === 0 && output.stdout.includes('Initial commit')) return true;
+	// return false;
 }
 
 // Check if there are edited files
 export const commitPending = (repo) => {
-	let output = shell.exec(`git -C ${repo} status`, {silent: true});
-	if (output.stdout.includes('Changes to be committed') || output.stdout.includes('Changes not staged for commit') || output.stdout.includes('Untracked files')) return true;
+	try {
+		let stdout = execSync(`git -C ${repo} status`).toString();
+		if (stdout.includes('Changes to be committed') || stdout.includes('Changes not staged for commit') || stdout.includes('Untracked files')) return true;
+	} catch (error) {}
 	return false;
 }
 
 // Check if there are commits needed to be pushed
 export const unpushed = (repo) => {
-	let output = shell.exec(`git -C ${repo} log --branches --not --remotes`, {silent: true});
-	if (output.stderr || (output.code === 0 && output.stdout.length === 0)) return false;
-	return true;
+	try {
+		let stdout = execSync(`git -C ${repo} log --branches --not --remotes`).toString();
+		if (stdout.length > 0) return true;
+	} catch (error) {}
+	return false;
 }
 
 export const getDotfile = () => {

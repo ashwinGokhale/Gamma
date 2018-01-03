@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import program from 'commander';
-import {list, search, init, add, remove, set, run, install, rebase, daemon, status} from './commands';
+import {list, search, init, add, remove, set, run, install, rebase, daemon, status, test} from './commands';
 
 const initProgram = () => {
 	program

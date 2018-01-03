@@ -10,8 +10,7 @@ import fuzzy from 'fuzzy';
 import chokidar from 'chokidar';
 import ps from 'ps-node';
 import logUpdate from 'log-update';
-import cliff from 'cliff';
-import { spawn, fork } from 'child_process';
+import { spawn } from 'child_process';
 import { dotpath, isChildOf, dirs, findRepos, getRepos, filter, listBases, listRepos, processContextBase, processContextRepo, runCommand, getDotfile, getBase, dumpDotfile, unpushed, repoEmpty, commitPending } from './helpers';
 
 // CLI commands
