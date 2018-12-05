@@ -3,7 +3,7 @@
 	"version": "0.0.6",
 	"description": "A tool for managing all git repos on your local machine",
 	"scripts": {
-		"test": "echo \"Error: no test specified\" && exit 1",
+		"test": "jest",
 		"build": "rimraf dist/ && babel ./src --out-dir dist/ --minified --compact --ignore ./node_modules,./.babelrc,./package.json,./npm-debug.log --copy-files",
 		"compile": "tsc",
 		"dev": "tsc -w",
@@ -29,6 +29,7 @@
 		"@types/commander": "^2.12.2",
 		"@types/glob": "^7.1.1",
 		"@types/inquirer": "^0.0.43",
+		"@types/jest": "^23.3.10",
 		"@types/log-update": "^2.0.0",
 		"@types/node": "^10.12.5",
 		"@types/shelljs": "^0.8.0",
@@ -40,7 +41,13 @@
 		"gulp-concat": "^2.6.1",
 		"gulp-mocha": "^6.0.0",
 		"gulp-uglify": "^3.0.0",
-		"rimraf": "^2.6.2"
+		"jest": "^23.6.0",
+		"prettier": "^1.15.3",
+		"rimraf": "^2.6.2",
+		"ts-jest": "^23.10.5",
+		"ts-node": "^7.0.1",
+		"tslint": "^5.11.0",
+		"tslint-config-prettier": "^1.17.0"
 	},
 	"dependencies": {
 		"chalk": "^2.4.0",

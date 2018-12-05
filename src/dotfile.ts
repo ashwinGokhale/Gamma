@@ -1,4 +1,4 @@
-export interface Dotfile {
+export interface IDotfile {
 	bases?: {
 		[x: string]: {
 			repos: {
