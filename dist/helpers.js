@@ -1,4 +1,12 @@
 "use strict";
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 const et = require("expand-tilde");
 const path = require("path");
@@ -30,9 +38,9 @@ exports.findRepos = (bases, dotfile) => {
     });
     return [dotfile, repoNames];
 };
-exports.getRepos = (bases) => {
+exports.getRepos = (bases) => __awaiter(this, void 0, void 0, function* () {
     let repos = [];
-    const [dotfile] = exports.getDotfile();
+    const [dotfile] = yield exports.getDotfile();
     if (bases.length > 0) {
         bases.forEach(base => {
             if (base in dotfile.bases)
@@ -46,7 +54,7 @@ exports.getRepos = (bases) => {
             repos = repos.concat(Object.keys(dotfile.bases[base].repos));
     }
     return repos;
-};
+});
 exports.getBase = (repo) => Object.keys(exports.getDotfile()[0].bases).find(base => exports.isChildOf(repo, base));
 exports.filter = (bases) => {
     const tree = {};
@@ -82,7 +90,7 @@ exports.listBases = (dotfile) => {
     }
     Object.keys(dotfile.bases).forEach(base => console.log(base));
 };
-exports.listRepos = (bases) => exports.getRepos(bases).forEach(base => console.log(base));
+exports.listRepos = (bases) => exports.getRepos(bases).then(b => b.forEach(base => console.log(base)));
 exports.processContextBase = (base, dotfile) => {
     const result = fuzzy.filter(base, Object.keys(dotfile.bases));
     if (!result.length)
@@ -154,22 +162,25 @@ exports.unpushed = (repo) => {
     }
     return false;
 };
-exports.getDotfile = () => {
+exports.getDotfile = () => __awaiter(this, void 0, void 0, function* () {
     if (!fs.existsSync(exports.dotpath)) {
         console.log(chalk_1.default.red(`Error removing bases: ~/.gamma.json has been corrupted. Rebuilding...`));
         const dotfile = commands_1.init();
         console.log(chalk_1.default.green(`~/.gamma.json has been rebuilt`));
-        return [dotfile, true];
+        return [yield dotfile, true];
     }
     else
         return [require(exports.dotpath), false];
-};
+});
 exports.dumpDotfile = (dotfile) => {
-    fs.writeFile(exports.dotpath, JSON.stringify(dotfile, null, ''), 'utf8', err => {
-        if (err) {
-            console.error(err);
-        }
+    return new Promise((resolve, reject) => {
+        fs.writeFile(exports.dotpath, JSON.stringify(dotfile, null, ''), 'utf8', err => {
+            if (err && err.code !== 'ENOENT') {
+                console.error(err);
+                reject(err);
+            }
+            resolve(dotfile);
+        });
     });
-    return dotfile;
 };
 //# sourceMappingURL=helpers.js.map

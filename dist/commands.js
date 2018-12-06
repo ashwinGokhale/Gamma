@@ -20,9 +20,9 @@ const ps = require("ps-node");
 const logUpdate = require("log-update");
 const child_process_1 = require("child_process");
 const helpers_1 = require("./helpers");
-exports.add = (base, bases) => {
-    let repos, repo_names = [];
-    let [dotfile] = helpers_1.getDotfile();
+exports.add = (base, bases) => __awaiter(this, void 0, void 0, function* () {
+    const repoNames = [];
+    let [dotfile] = yield helpers_1.getDotfile();
     bases = bases.concat(base);
     logUpdate(chalk_1.default.yellow('Adding bases...'));
     bases = helpers_1.filter(bases.map(b => path.resolve(et(b))).sort((a, b) => a.length - b.length));
@@ -49,18 +49,18 @@ exports.add = (base, bases) => {
             toIndex.push(base);
         }
     });
-    [dotfile, repo_names] = helpers_1.findRepos(toIndex, dotfile);
+    [dotfile, repoNames] = helpers_1.findRepos(toIndex, dotfile);
     logUpdate.clear();
-    Object.keys(repo_names).forEach(base => {
+    Object.keys(repoNames).forEach(base => {
         console.log(chalk_1.default.green(`Base added: ${base}`));
-        const names = repo_names[base].map((name, num) => `  ${num + 1}) ${name}`).join('\n');
+        const names = repoNames[base].map((name, num) => `  ${num + 1}) ${name}`).join('\n');
         console.log(chalk_1.default.green(`Repos added: \n${names ? names : '  None'}`));
     });
     return helpers_1.dumpDotfile(dotfile);
-};
-exports.remove = (base, bases) => {
+});
+exports.remove = (base, bases) => __awaiter(this, void 0, void 0, function* () {
     child_process_1.spawn('gamma', ['rebase'], { detached: true, stdio: 'ignore' }).unref();
-    const [dotfile, error] = helpers_1.getDotfile();
+    const [dotfile, error] = yield helpers_1.getDotfile();
     if (error)
         return dotfile;
     bases.concat(base).forEach(base => {
@@ -80,30 +80,30 @@ exports.remove = (base, bases) => {
             console.log(chalk_1.default.red(`${basePath} is not a base`));
     });
     return helpers_1.dumpDotfile(dotfile);
-};
-exports.init = () => {
+});
+exports.init = () => __awaiter(this, void 0, void 0, function* () {
     const content = { bases: {}, context: { base: '', repo: {} } };
-    return helpers_1.dumpDotfile(content);
-};
-exports.list = (bases, options) => {
+    return yield helpers_1.dumpDotfile(content);
+});
+exports.list = (bases, options) => __awaiter(this, void 0, void 0, function* () {
     child_process_1.spawn('gamma', ['rebase'], { detached: true, stdio: 'ignore' }).unref();
-    const [dotfile] = helpers_1.getDotfile();
+    const [dotfile] = yield helpers_1.getDotfile();
     if (options.bases)
         return helpers_1.listBases(dotfile);
     if (options.context)
         return console.log(`Base: ${dotfile.context.base ? dotfile.context.base : ''}\nRepo: ${dotfile.context.repo.name ? dotfile.context.repo.name : ''}`);
     return helpers_1.listRepos(bases);
-};
-exports.search = (base) => {
+});
+exports.search = (base) => __awaiter(this, void 0, void 0, function* () {
     child_process_1.spawn('gamma', ['rebase'], { detached: true, stdio: 'ignore' }).unref();
-    const [dotfile, error] = helpers_1.getDotfile();
+    const [dotfile] = yield helpers_1.getDotfile();
     const repos = [];
     Object.keys(dotfile.bases).forEach(b => Object.entries(dotfile.bases[b].repos).forEach(key => repos.push(key[1].path)));
     const filtered = fuzzy.filter(base, repos);
     filtered.length ? console.log(filtered[0].string) : console.log('');
-};
-exports.set = options => {
-    const [dotfile] = helpers_1.getDotfile();
+});
+exports.set = (options) => __awaiter(this, void 0, void 0, function* () {
+    const [dotfile] = yield helpers_1.getDotfile();
     let context;
     if (options.base) {
         const baseContext = helpers_1.processContextBase(options.base, dotfile);
@@ -117,9 +117,9 @@ exports.set = options => {
         console.log(chalk_1.default.green(`Updated context:`));
         exports.list(null, { context: true });
     }
-};
+});
 exports.run = (...options) => __awaiter(this, void 0, void 0, function* () {
-    const [dotfile, error] = helpers_1.getDotfile();
+    const [dotfile, error] = yield helpers_1.getDotfile();
     if (error)
         return;
     const option = options[options.length - 1];
@@ -183,8 +183,8 @@ Example:
         return console.log(`Did not install the ${name} command`);
     messages.forEach(message => console.log(message));
 });
-exports.rebase = (bases) => {
-    let [dotfile, error] = helpers_1.getDotfile();
+exports.rebase = (bases) => __awaiter(this, void 0, void 0, function* () {
+    let [dotfile, error] = yield helpers_1.getDotfile();
     if (error)
         return dotfile;
     const dotBases = Object.keys(dotfile.bases);
@@ -221,7 +221,7 @@ exports.rebase = (bases) => {
     if (dotfile.context.repo && !fs.existsSync(dotfile.context.repo.path))
         dotfile.context.repo = {};
     return helpers_1.dumpDotfile(dotfile);
-};
+});
 exports.daemon = () => {
     ps.lookup({ command: 'node', arguments: ['gamma', 'daemon'] }, (err, processes) => {
         if (err)
@@ -233,8 +233,8 @@ exports.daemon = () => {
             .watch(Object.keys(helpers_1.getDotfile()[0].bases), {
             ignored: /(^|\/)\.[^\/\.]|(node_modules)/gm
         })
-            .on('addDir', dirPath => {
-            const [dotfile, error] = helpers_1.getDotfile();
+            .on('addDir', (dirPath) => __awaiter(this, void 0, void 0, function* () {
+            const [dotfile] = yield helpers_1.getDotfile();
             if (!/(\.git(\0|\/|\n|\r))/gm.exec(dirPath))
                 return;
             if (shell.exec(`git -C ${dirPath} rev-parse`).code !== 0)
@@ -250,9 +250,9 @@ exports.daemon = () => {
             };
             helpers_1.dumpDotfile(dotfile);
             return;
-        })
-            .on('unlinkDir', dirPath => {
-            const [dotfile, error] = helpers_1.getDotfile();
+        }))
+            .on('unlinkDir', (dirPath) => __awaiter(this, void 0, void 0, function* () {
+            const [dotfile] = yield helpers_1.getDotfile();
             for (const base of Object.keys(dotfile.bases)) {
                 if (!helpers_1.isChildOf(dirPath, base))
                     continue;
@@ -262,11 +262,11 @@ exports.daemon = () => {
                 helpers_1.dumpDotfile(dotfile);
                 break;
             }
-        });
+        }));
     });
 };
-exports.status = () => {
-    const [dotfile, error] = helpers_1.getDotfile();
+exports.status = () => __awaiter(this, void 0, void 0, function* () {
+    const [dotfile, error] = yield helpers_1.getDotfile();
     if (error)
         return dotfile;
     child_process_1.spawn('gamma', ['rebase'], { detached: true, stdio: 'ignore' }).unref();
@@ -293,8 +293,8 @@ exports.status = () => {
         console.log();
     });
     return dotfile;
-};
+});
 exports.test = () => {
-    console.log('Testing');
+    console.log('Testing just changed');
 };
 //# sourceMappingURL=commands.js.map

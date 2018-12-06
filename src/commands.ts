@@ -10,11 +10,8 @@ import * as ps from 'ps-node';
 import * as logUpdate from 'log-update';
 import { spawn } from 'child_process';
 import {
-	dotpath,
 	isChildOf,
-	getDirectories,
 	findRepos,
-	getRepos,
 	filter,
 	listBases,
 	listRepos,
@@ -30,12 +27,11 @@ import {
 } from './helpers';
 
 // CLI commands
-export const add = (base: string, bases: string[]) => {
+export const add = async (base: string, bases: string[]) => {
 	// Adds the bases and finds all repos in it.
 	// Attempt to load the dotfile
-	let repos,
-		repo_names = [];
-	let [dotfile] = getDotfile();
+	const repoNames = [];
+	let [dotfile] = await getDotfile();
 
 	bases = bases.concat(base);
 
@@ -72,13 +68,13 @@ export const add = (base: string, bases: string[]) => {
 	});
 
 	// Index the new bases for repos
-	[dotfile, repo_names as any] = findRepos(toIndex, dotfile);
+	[dotfile, repoNames as any] = findRepos(toIndex, dotfile);
 
 	logUpdate.clear();
 	// Format the output and print it
-	Object.keys(repo_names).forEach(base => {
+	Object.keys(repoNames).forEach(base => {
 		console.log(chalk.green(`Base added: ${base}`));
-		const names = repo_names[base].map((name, num) => `  ${num + 1}) ${name}`).join('\n');
+		const names = repoNames[base].map((name, num) => `  ${num + 1}) ${name}`).join('\n');
 		console.log(chalk.green(`Repos added: \n${names ? names : '  None'}`));
 	});
 
@@ -86,12 +82,12 @@ export const add = (base: string, bases: string[]) => {
 	return dumpDotfile(dotfile);
 };
 
-export const remove = (base: string, bases: string[]) => {
+export const remove = async (base: string, bases: string[]) => {
 	// Asynchronously rebase
 	spawn('gamma', ['rebase'], { detached: true, stdio: 'ignore' }).unref();
 
 	// Removes a base, including all repos in it
-	const [dotfile, error] = getDotfile();
+	const [dotfile, error] = await getDotfile();
 	if (error) return dotfile;
 
 	bases.concat(base).forEach(base => {
@@ -111,17 +107,17 @@ export const remove = (base: string, bases: string[]) => {
 	return dumpDotfile(dotfile);
 };
 
-export const init = () => {
+export const init = async () => {
 	// Initializes the gamma dofile and persists to disk
 	const content = { bases: {}, context: { base: '', repo: {} } };
-	return dumpDotfile(content);
+	return await dumpDotfile(content);
 };
 
-export const list = (bases: string[], options) => {
+export const list = async (bases: string[], options) => {
 	// Asynchronously rebase
 	spawn('gamma', ['rebase'], { detached: true, stdio: 'ignore' }).unref();
 
-	const [dotfile] = getDotfile();
+	const [dotfile] = await getDotfile();
 	if (options.bases) return listBases(dotfile);
 	if (options.context)
 		return console.log(
@@ -133,11 +129,11 @@ export const list = (bases: string[], options) => {
 	return listRepos(bases);
 };
 
-export const search = (base: string) => {
+export const search = async (base: string) => {
 	// Asynchronously rebase
 	spawn('gamma', ['rebase'], { detached: true, stdio: 'ignore' }).unref();
 
-	const [dotfile, error] = getDotfile();
+	const [dotfile] = await getDotfile();
 	const repos = [];
 	Object.keys(dotfile.bases).forEach(b =>
 		Object.entries(dotfile.bases[b].repos).forEach(key => repos.push(key[1].path))
@@ -146,8 +142,8 @@ export const search = (base: string) => {
 	filtered.length ? console.log(filtered[0].string) : console.log('');
 };
 
-export const set = options => {
-	const [dotfile] = getDotfile();
+export const set = async options => {
+	const [dotfile] = await getDotfile();
 
 	let context;
 	if (options.base) {
@@ -166,7 +162,7 @@ export const set = options => {
 };
 
 export const run = async (...options) => {
-	const [dotfile, error] = getDotfile();
+	const [dotfile, error] = await getDotfile();
 	if (error) return;
 
 	// options = options[options.length - 1] as any;
@@ -229,8 +225,8 @@ Example:
 	messages.forEach(message => console.log(message));
 };
 
-export const rebase = (bases?: string[]) => {
-	let [dotfile, error] = getDotfile();
+export const rebase = async (bases?: string[]) => {
+	let [dotfile, error] = await getDotfile();
 	if (error) return dotfile;
 
 	const dotBases = Object.keys(dotfile.bases);
@@ -312,8 +308,8 @@ export const daemon = () => {
 			.watch(Object.keys(getDotfile()[0].bases), {
 				ignored: /(^|\/)\.[^\/\.]|(node_modules)/gm
 			})
-			.on('addDir', dirPath => {
-				const [dotfile, error] = getDotfile();
+			.on('addDir', async dirPath => {
+				const [dotfile] = await getDotfile();
 				if (!/(\.git(\0|\/|\n|\r))/gm.exec(dirPath)) return;
 
 				if (shell.exec(`git -C ${dirPath} rev-parse`).code !== 0) return;
@@ -331,8 +327,8 @@ export const daemon = () => {
 				dumpDotfile(dotfile);
 				return;
 			})
-			.on('unlinkDir', dirPath => {
-				const [dotfile, error] = getDotfile();
+			.on('unlinkDir', async dirPath => {
+				const [dotfile] = await getDotfile();
 				for (const base of Object.keys(dotfile.bases)) {
 					if (!isChildOf(dirPath, base)) continue;
 
@@ -346,8 +342,8 @@ export const daemon = () => {
 	});
 };
 
-export const status = () => {
-	const [dotfile, error] = getDotfile();
+export const status = async () => {
+	const [dotfile, error] = await getDotfile();
 	if (error) return dotfile;
 
 	// Asynchronously rebase
@@ -390,5 +386,5 @@ export const status = () => {
 };
 
 export const test = () => {
-	console.log('Testing');
+	console.log('Testing just changed');
 };

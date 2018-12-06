@@ -9,7 +9,7 @@ import { rebase, init } from './commands';
 import { spawn, execSync } from 'child_process';
 import { IDotfile } from './dotfile';
 
-export const dotpath = et('~/.gamma.json');
+export const dotpath: string = et('~/.gamma.json');
 
 // Helper functions
 export const isChildOf = (child: string, parent: string) =>
@@ -38,10 +38,10 @@ export const findRepos = (bases: string[], dotfile: IDotfile) => {
 	return [dotfile, repoNames];
 };
 
-export const getRepos = (bases: string[]) => {
+export const getRepos = async (bases: string[]) => {
 	// TODO: Only add bases that aren't in the dotfile
 	let repos = [];
-	const [dotfile] = getDotfile();
+	const [dotfile] = await getDotfile();
 
 	if (bases.length > 0) {
 		bases.forEach(base => {
@@ -96,7 +96,8 @@ export const listBases = (dotfile: IDotfile) => {
 	Object.keys(dotfile.bases).forEach(base => console.log(base));
 };
 
-export const listRepos = (bases: string[]) => getRepos(bases).forEach(base => console.log(base));
+export const listRepos = (bases: string[]) =>
+	getRepos(bases).then(b => b.forEach(base => console.log(base)));
 
 export const processContextBase = (base: string, dotfile: IDotfile) => {
 	// Sets the base as the context base
@@ -188,7 +189,7 @@ export const unpushed = (repo: string) => {
 	return false;
 };
 
-export const getDotfile = (): [IDotfile, boolean] => {
+export const getDotfile = async (): Promise<[IDotfile, boolean]> => {
 	// export const getDotfile = () => {
 	if (!fs.existsSync(dotpath)) {
 		console.log(
@@ -196,16 +197,18 @@ export const getDotfile = (): [IDotfile, boolean] => {
 		);
 		const dotfile = init();
 		console.log(chalk.green(`~/.gamma.json has been rebuilt`));
-		return [dotfile, true];
+		return [await dotfile, true];
 	} else return [require(dotpath), false];
 };
 
-export const dumpDotfile = (dotfile: IDotfile) => {
-	fs.writeFile(dotpath, JSON.stringify(dotfile, null, ''), 'utf8', err => {
-		if (err) {
-			console.error(err);
-		}
+export const dumpDotfile = (dotfile: IDotfile): Promise<IDotfile> => {
+	return new Promise((resolve, reject) => {
+		fs.writeFile(dotpath, JSON.stringify(dotfile, null, ''), 'utf8', err => {
+			if (err && err.code !== 'ENOENT') {
+				console.error(err);
+				reject(err);
+			}
+			resolve(dotfile);
+		});
 	});
-	// fs.writeFile(dotpath,JSON.stringify(dotfile, null, '\t'), 'utf8', err => {if(err){console.error(err)}});
-	return dotfile;
 };
