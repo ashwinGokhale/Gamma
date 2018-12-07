@@ -28,11 +28,8 @@ import {
 import { logger } from './logger';
 
 // CLI commands
-// export const add = async (base: string, bases: string[]) => {
 export const add = async (bases: string[]) => {
 	const [dotfile] = await getDotfile();
-
-	// bases = bases.concat(base);
 
 	// TODO: Add a spinner because glob is slow
 	logUpdate(chalk.yellow('Adding bases...'));
@@ -46,13 +43,13 @@ export const add = async (bases: string[]) => {
 		for (const b of Object.keys(dotfile.bases)) {
 			// If the base trying to be added is a subdirectory of an existing base, skip it
 			if (isChildOf(base, b)) {
-				console.log(chalk.red(`${base} is inside another base: ${b}`));
+				logger.info(chalk.red(`${base} is inside another base: ${b}`));
 				isSubdir = true;
 				break;
 			}
 			// If the base trying to be added is a parent directory of an existing base, delete the sub directory
 			if (isChildOf(b, base)) {
-				console.log(chalk.red(`${b} is inside another base: ${base}`));
+				logger.info(chalk.red(`${b} is inside another base: ${base}`));
 				// if (to_index.indexOf(b) >= 0) to_index.remove(b);
 				if (toIndex.indexOf(b) >= 0) toIndex = toIndex.filter(p => p !== b);
 				if (b in dotfile.bases) delete dotfile.bases[b];
@@ -72,11 +69,11 @@ export const add = async (bases: string[]) => {
 	logUpdate.clear();
 	// Format the output and print it
 	Object.keys(basesWithRepoNames).forEach(base => {
-		console.log(chalk.green(`Base added: ${base}`));
+		logger.info(chalk.green(`Base added: ${base}`));
 		const names = basesWithRepoNames[base]
 			.map((name, num) => `  ${num + 1}) ${name}`)
 			.join('\n');
-		console.log(chalk.green(`Repos added: \n${names ? names : '  None'}`));
+		logger.info(chalk.green(`Repos added: \n${names ? names : '  None'}`));
 	});
 
 	// Write the dotfile back
@@ -100,9 +97,9 @@ export const remove = async (base: string, bases: string[]) => {
 				.map((name, num) => `  ${num + 1}) ${name}`)
 				.join('\n');
 			delete dotfile.bases[basePath];
-			console.log(chalk.red(`Base deleted: ${basePath}`));
-			if (names) console.log(chalk.red(`Repos deleted: \n${names}`));
-		} else console.log(chalk.red(`${basePath} is not a base`));
+			logger.info(chalk.red(`Base deleted: ${basePath}`));
+			if (names) logger.info(chalk.red(`Repos deleted: \n${names}`));
+		} else logger.info(chalk.red(`${basePath} is not a base`));
 	});
 
 	return dumpDotfile(dotfile);
@@ -121,7 +118,7 @@ export const list = async (bases: string[], options) => {
 	const [dotfile] = await getDotfile();
 	if (options.bases) return listBases(dotfile);
 	if (options.context)
-		return console.log(
+		return logger.info(
 			`Base: ${dotfile.context.base ? dotfile.context.base : ''}\nRepo: ${
 				dotfile.context.repo.name ? dotfile.context.repo.name : ''
 			}`
@@ -139,7 +136,7 @@ export const search = async (base: string) => {
 		Object.entries(dotfile.bases[b].repos).forEach(key => repos.push(key[1].path))
 	);
 	const filtered = fuzzy.filter(base, repos);
-	filtered.length ? console.log(filtered[0].string) : console.log('');
+	filtered.length ? logger.info(filtered[0].string) : logger.info('');
 };
 
 export const set = async options => {
@@ -156,7 +153,7 @@ export const set = async options => {
 	}
 
 	if (context) {
-		console.log(chalk.green(`Updated context:`));
+		logger.info(chalk.green(`Updated context:`));
 		list(null, { context: true });
 	}
 };
@@ -168,8 +165,10 @@ export const run = async (...options) => {
 	// options = options[options.length - 1] as any;
 	const option = options[options.length - 1];
 
-	if (option.command && typeof option.command === 'string')
-		return runCommand(option.command, dotfile);
+	if (option.command && typeof option.command === 'string') {
+		runCommand(option.command, dotfile);
+		return;
+	}
 
 	while (true) {
 		const { command } = (await inquirer.prompt({
@@ -190,7 +189,7 @@ Example:
 	➜  Gamma (master) ✗ pwd
 	/Users/ashwin/Dropbox/gitHub/Gamma
 `;
-	console.log(COMMAND_INFO);
+	logger.info(COMMAND_INFO);
 	const { confirm } = (await inquirer.prompt({
 		type: 'confirm',
 		name: 'confirm',
@@ -221,8 +220,11 @@ Example:
 			messages.push(chalk.red(`No write access for ${shellPath}`));
 		}
 	}
-	if (!messages.length) return console.log(`Did not install the ${name} command`);
-	messages.forEach(message => console.log(message));
+	if (!messages.length) {
+		logger.info(`Did not install the ${name} command`);
+		return;
+	}
+	messages.forEach(message => logger.info(message));
 };
 
 export const rebase = async (bases?: string[]) => {
@@ -261,13 +263,13 @@ export const rebase = async (bases?: string[]) => {
 			.map((name, num) => `  ${num + 1}) ${name}`)
 			.join('\n');
 		if (fs.existsSync(base)) {
-			console.log(`Base reindexed: ${base}`);
-			console.log(chalk.green(`Repos added: \n${reposAdded ? reposAdded : '  None'}`));
+			logger.info(`Base reindexed: ${base}`);
+			logger.info(chalk.green(`Repos added: \n${reposAdded ? reposAdded : '  None'}`));
 		} else {
-			console.log(chalk.red(`${base} does not exist`));
+			logger.info(chalk.red(`${base} does not exist`));
 			delete dotfile.bases[base];
 		}
-		console.log(chalk.red(`Repos removed: \n${reposRemoved ? reposRemoved : '  None'}`));
+		logger.info(chalk.red(`Repos removed: \n${reposRemoved ? reposRemoved : '  None'}`));
 	});
 
 	// Check if context base exits
@@ -303,7 +305,7 @@ export const daemon = () => {
 		// 	['daemon'], // args
 		// 	'/Users/$USER/Desktop/daemon.log' // out
 		// )
-		console.log(`Gamma deamon started`);
+		logger.info(`Gamma deamon started`);
 		chokidar
 			.watch(Object.keys(getDotfile()[0].bases), {
 				ignored: /(^|\/)\.[^\/\.]|(node_modules)/gm
@@ -361,7 +363,7 @@ export const status = async () => {
 	// Print the status of each repo in each base
 	Object.keys(dotfile.bases).forEach(base => {
 		// Print row header
-		console.log(
+		logger.info(
 			chalk.magenta(`Base: ${base}${' '.repeat(Math.abs(pad - base.length + 5))}Status`)
 		);
 		// Print the status of each repo
@@ -374,17 +376,17 @@ export const status = async () => {
 			if (unpushed(repo)) messages.push(chalk.yellow('Unpushed'));
 			if (!messages.length) messages.push(chalk.green('Up to date'));
 			// Print the formatted status message
-			console.log(
+			logger.info(
 				`${repoName}${' '.repeat(Math.abs(pad - repoName.length + 11))}${messages.join(
 					' | '
 				)}`
 			);
 		});
-		console.log();
+		logger.info('');
 	});
 	return dotfile;
 };
 
 export const test = bases => {
-	console.log('Testing just changed:', bases);
+	logger.info('Testing just changed:', bases);
 };

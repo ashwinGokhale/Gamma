@@ -47,7 +47,7 @@ export const getRepos = async (bases: string[]) => {
 	if (bases.length > 0) {
 		bases.forEach(base => {
 			if (base in dotfile.bases) repos = repos.concat(Object.keys(dotfile.bases[base].repos));
-			else console.log(chalk.red(`${base} is not a base`));
+			else logger.info(chalk.red(`${base} is not a base`));
 		});
 	} else {
 		for (const base in dotfile.bases)
@@ -66,7 +66,7 @@ export const filter = (bases: string[]) => {
 	bases.forEach(base => {
 		base = path.resolve(et(base));
 		if (!fs.existsSync(base)) {
-			console.log(chalk.red(`${base} does not exist`));
+			logger.info(chalk.red(`${base} does not exist`));
 			return;
 		}
 		const dirs = base.split(path.sep);
@@ -94,18 +94,18 @@ export const listBases = (dotfile: IDotfile) => {
 		}
 	}
 
-	Object.keys(dotfile.bases).forEach(base => console.log(base));
+	Object.keys(dotfile.bases).forEach(base => logger.info(base));
 };
 
 export const listRepos = (bases: string[]) =>
-	getRepos(bases).then(b => b.forEach(base => console.log(base)));
+	getRepos(bases).then(b => b.forEach(base => logger.info(base)));
 
 export const processContextBase = (base: string, dotfile: IDotfile) => {
 	// Sets the base as the context base
 	const result = fuzzy.filter(base, Object.keys(dotfile.bases));
 
 	if (!result.length)
-		return console.log(chalk.red(`Could not match: ${base} to an existing base`));
+		return logger.info(chalk.red(`Could not match: ${base} to an existing base`));
 
 	dotfile.context.base = result[0].string;
 	dotfile.context.repo = {};
@@ -116,12 +116,12 @@ export const processContextBase = (base: string, dotfile: IDotfile) => {
 export const processContextRepo = (repo: string, dotfile: IDotfile) => {
 	// Sets the base as the context base
 	const contextBase = dotfile.context.base;
-	if (!contextBase) return console.log(chalk.red(`Please set the context`));
+	if (!contextBase) return logger.info(chalk.red(`Please set the context`));
 	const repoKeys = Object.keys(dotfile.bases[contextBase].repos);
 	const result = fuzzy.filter(repo, repoKeys);
 
 	if (!result.length)
-		return console.log(
+		return logger.info(
 			chalk.red(`Could not match: ${repo} to an existing repo in ${contextBase}`)
 		);
 
@@ -138,14 +138,18 @@ export const runCommand = (command: string, dotfile: IDotfile) => {
 	const repo = dotfile.context.repo;
 	if (!Object.getOwnPropertyNames(repo).length) {
 		rebase();
-		return console.log(chalk.red(`Context repo is missing!`));
+		logger.info(chalk.red(`Context repo is missing!`));
+		return 1;
 	}
 
 	const spaceEscapedRepo = repo.path.replace(/ /g, '\\ ');
 	command = `git -C ${spaceEscapedRepo} ${command}`;
 
 	const code = shell.exec(command).code;
-	if (code !== 0) return console.log(chalk.red(`Command: ${command} failed!`));
+	if (code !== 0) {
+		logger.info(chalk.red(`Command: ${command} failed!`));
+		return code;
+	}
 	return code;
 };
 
@@ -193,19 +197,19 @@ export const unpushed = (repo: string) => {
 export const getDotfile = async (): Promise<[IDotfile, boolean]> => {
 	// export const getDotfile = () => {
 	if (!fs.existsSync(dotpath)) {
-		console.log(chalk.red(`Error: ~/.gamma.json has been corrupted. Rebuilding...`));
+		logger.info(chalk.red(`Error: ~/.gamma.json has been corrupted. Rebuilding...`));
 		const dotfile = await init();
-		console.log(chalk.green(`~/.gamma.json has been rebuilt`));
+		logger.info(chalk.green(`~/.gamma.json has been rebuilt`));
 		return [dotfile, true];
 	} else {
 		return new Promise<[IDotfile, boolean]>((resolve, reject) => {
 			fs.readFile(dotpath, async (err, data) => {
 				if (err) {
-					console.log(
+					logger.info(
 						chalk.red(`Error: ~/.gamma.json has been corrupted. Rebuilding...`)
 					);
 					const dotfile = await init();
-					console.log(chalk.green(`~/.gamma.json has been rebuilt`));
+					logger.info(chalk.green(`~/.gamma.json has been rebuilt`));
 					return reject([dotfile, true]);
 				}
 				try {
@@ -213,13 +217,13 @@ export const getDotfile = async (): Promise<[IDotfile, boolean]> => {
 					// logger.info(chalk.yellow('Created dotfile: %j'), dotfile);
 					return resolve([dotfile, false]);
 				} catch (error) {
-					console.log(
+					logger.info(
 						chalk.red(
 							`Error removing bases: ~/.gamma.json has been corrupted. Rebuilding...`
 						)
 					);
 					const dotfile = await init();
-					console.log(chalk.green(`~/.gamma.json has been rebuilt`));
+					logger.info(chalk.green(`~/.gamma.json has been rebuilt`));
 					return reject([dotfile, true]);
 				}
 			});

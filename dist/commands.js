@@ -20,6 +20,7 @@ const ps = require("ps-node");
 const logUpdate = require("log-update");
 const child_process_1 = require("child_process");
 const helpers_1 = require("./helpers");
+const logger_1 = require("./logger");
 exports.add = (bases) => __awaiter(this, void 0, void 0, function* () {
     const [dotfile] = yield helpers_1.getDotfile();
     logUpdate(chalk_1.default.yellow('Adding bases...'));
@@ -29,12 +30,12 @@ exports.add = (bases) => __awaiter(this, void 0, void 0, function* () {
         let isSubdir = false;
         for (const b of Object.keys(dotfile.bases)) {
             if (helpers_1.isChildOf(base, b)) {
-                console.log(chalk_1.default.red(`${base} is inside another base: ${b}`));
+                logger_1.logger.info(chalk_1.default.red(`${base} is inside another base: ${b}`));
                 isSubdir = true;
                 break;
             }
             if (helpers_1.isChildOf(b, base)) {
-                console.log(chalk_1.default.red(`${b} is inside another base: ${base}`));
+                logger_1.logger.info(chalk_1.default.red(`${b} is inside another base: ${base}`));
                 if (toIndex.indexOf(b) >= 0)
                     toIndex = toIndex.filter(p => p !== b);
                 if (b in dotfile.bases)
@@ -50,11 +51,11 @@ exports.add = (bases) => __awaiter(this, void 0, void 0, function* () {
     const [updatedDotfile, basesWithRepoNames] = helpers_1.findRepos(toIndex, dotfile);
     logUpdate.clear();
     Object.keys(basesWithRepoNames).forEach(base => {
-        console.log(chalk_1.default.green(`Base added: ${base}`));
+        logger_1.logger.info(chalk_1.default.green(`Base added: ${base}`));
         const names = basesWithRepoNames[base]
             .map((name, num) => `  ${num + 1}) ${name}`)
             .join('\n');
-        console.log(chalk_1.default.green(`Repos added: \n${names ? names : '  None'}`));
+        logger_1.logger.info(chalk_1.default.green(`Repos added: \n${names ? names : '  None'}`));
     });
     return helpers_1.dumpDotfile(updatedDotfile);
 });
@@ -72,12 +73,12 @@ exports.remove = (base, bases) => __awaiter(this, void 0, void 0, function* () {
                 .map((name, num) => `  ${num + 1}) ${name}`)
                 .join('\n');
             delete dotfile.bases[basePath];
-            console.log(chalk_1.default.red(`Base deleted: ${basePath}`));
+            logger_1.logger.info(chalk_1.default.red(`Base deleted: ${basePath}`));
             if (names)
-                console.log(chalk_1.default.red(`Repos deleted: \n${names}`));
+                logger_1.logger.info(chalk_1.default.red(`Repos deleted: \n${names}`));
         }
         else
-            console.log(chalk_1.default.red(`${basePath} is not a base`));
+            logger_1.logger.info(chalk_1.default.red(`${basePath} is not a base`));
     });
     return helpers_1.dumpDotfile(dotfile);
 });
@@ -91,7 +92,7 @@ exports.list = (bases, options) => __awaiter(this, void 0, void 0, function* () 
     if (options.bases)
         return helpers_1.listBases(dotfile);
     if (options.context)
-        return console.log(`Base: ${dotfile.context.base ? dotfile.context.base : ''}\nRepo: ${dotfile.context.repo.name ? dotfile.context.repo.name : ''}`);
+        return logger_1.logger.info(`Base: ${dotfile.context.base ? dotfile.context.base : ''}\nRepo: ${dotfile.context.repo.name ? dotfile.context.repo.name : ''}`);
     return helpers_1.listRepos(bases);
 });
 exports.search = (base) => __awaiter(this, void 0, void 0, function* () {
@@ -100,7 +101,7 @@ exports.search = (base) => __awaiter(this, void 0, void 0, function* () {
     const repos = [];
     Object.keys(dotfile.bases).forEach(b => Object.entries(dotfile.bases[b].repos).forEach(key => repos.push(key[1].path)));
     const filtered = fuzzy.filter(base, repos);
-    filtered.length ? console.log(filtered[0].string) : console.log('');
+    filtered.length ? logger_1.logger.info(filtered[0].string) : logger_1.logger.info('');
 });
 exports.set = (options) => __awaiter(this, void 0, void 0, function* () {
     const [dotfile] = yield helpers_1.getDotfile();
@@ -114,7 +115,7 @@ exports.set = (options) => __awaiter(this, void 0, void 0, function* () {
         context = repoContext ? repoContext : context;
     }
     if (context) {
-        console.log(chalk_1.default.green(`Updated context:`));
+        logger_1.logger.info(chalk_1.default.green(`Updated context:`));
         exports.list(null, { context: true });
     }
 });
@@ -123,8 +124,10 @@ exports.run = (...options) => __awaiter(this, void 0, void 0, function* () {
     if (error)
         return;
     const option = options[options.length - 1];
-    if (option.command && typeof option.command === 'string')
-        return helpers_1.runCommand(option.command, dotfile);
+    if (option.command && typeof option.command === 'string') {
+        helpers_1.runCommand(option.command, dotfile);
+        return;
+    }
     while (true) {
         const { command } = (yield inquirer.prompt({
             type: 'input',
@@ -145,7 +148,7 @@ Example:
 	➜  Gamma (master) ✗ pwd
 	/Users/ashwin/Dropbox/gitHub/Gamma
 `;
-    console.log(COMMAND_INFO);
+    logger_1.logger.info(COMMAND_INFO);
     const { confirm } = (yield inquirer.prompt({
         type: 'confirm',
         name: 'confirm',
@@ -179,9 +182,11 @@ Example:
             messages.push(chalk_1.default.red(`No write access for ${shellPath}`));
         }
     }
-    if (!messages.length)
-        return console.log(`Did not install the ${name} command`);
-    messages.forEach(message => console.log(message));
+    if (!messages.length) {
+        logger_1.logger.info(`Did not install the ${name} command`);
+        return;
+    }
+    messages.forEach(message => logger_1.logger.info(message));
 });
 exports.rebase = (bases) => __awaiter(this, void 0, void 0, function* () {
     let [dotfile, error] = yield helpers_1.getDotfile();
@@ -207,14 +212,14 @@ exports.rebase = (bases) => __awaiter(this, void 0, void 0, function* () {
             .map((name, num) => `  ${num + 1}) ${name}`)
             .join('\n');
         if (fs.existsSync(base)) {
-            console.log(`Base reindexed: ${base}`);
-            console.log(chalk_1.default.green(`Repos added: \n${reposAdded ? reposAdded : '  None'}`));
+            logger_1.logger.info(`Base reindexed: ${base}`);
+            logger_1.logger.info(chalk_1.default.green(`Repos added: \n${reposAdded ? reposAdded : '  None'}`));
         }
         else {
-            console.log(chalk_1.default.red(`${base} does not exist`));
+            logger_1.logger.info(chalk_1.default.red(`${base} does not exist`));
             delete dotfile.bases[base];
         }
-        console.log(chalk_1.default.red(`Repos removed: \n${reposRemoved ? reposRemoved : '  None'}`));
+        logger_1.logger.info(chalk_1.default.red(`Repos removed: \n${reposRemoved ? reposRemoved : '  None'}`));
     });
     if (dotfile.context.base && !fs.existsSync(dotfile.context.base))
         dotfile.context = { base: '', repo: {} };
@@ -228,7 +233,7 @@ exports.daemon = () => {
             return console.error(err);
         if (processes.length > 1)
             return;
-        console.log(`Gamma deamon started`);
+        logger_1.logger.info(`Gamma deamon started`);
         chokidar
             .watch(Object.keys(helpers_1.getDotfile()[0].bases), {
             ignored: /(^|\/)\.[^\/\.]|(node_modules)/gm
@@ -276,7 +281,7 @@ exports.status = () => __awaiter(this, void 0, void 0, function* () {
         .forEach(repo => names.push(repo)));
     const pad = names.reduce((r, s) => (r > s.length ? r : s.length), 0);
     Object.keys(dotfile.bases).forEach(base => {
-        console.log(chalk_1.default.magenta(`Base: ${base}${' '.repeat(Math.abs(pad - base.length + 5))}Status`));
+        logger_1.logger.info(chalk_1.default.magenta(`Base: ${base}${' '.repeat(Math.abs(pad - base.length + 5))}Status`));
         Object.keys(dotfile.bases[base].repos).forEach(repoName => {
             const repo = dotfile.bases[base].repos[repoName].path.replace(/ /g, '\\ ');
             const messages = [];
@@ -288,13 +293,13 @@ exports.status = () => __awaiter(this, void 0, void 0, function* () {
                 messages.push(chalk_1.default.yellow('Unpushed'));
             if (!messages.length)
                 messages.push(chalk_1.default.green('Up to date'));
-            console.log(`${repoName}${' '.repeat(Math.abs(pad - repoName.length + 11))}${messages.join(' | ')}`);
+            logger_1.logger.info(`${repoName}${' '.repeat(Math.abs(pad - repoName.length + 11))}${messages.join(' | ')}`);
         });
-        console.log();
+        logger_1.logger.info('');
     });
     return dotfile;
 });
 exports.test = bases => {
-    console.log('Testing just changed:', bases);
+    logger_1.logger.info('Testing just changed:', bases);
 };
 //# sourceMappingURL=commands.js.map

@@ -17,6 +17,7 @@ const shell = require("shelljs");
 const fuzzy = require("fuzzy");
 const child_process_1 = require("child_process");
 const commands_1 = require("./commands");
+const logger_1 = require("./logger");
 exports.dotpath = et('~/.gamma.json');
 exports.isChildOf = (child, parent) => child !== parent && parent.split('/').every((t, i) => child.split('/')[i] === t);
 exports.getDirectories = (p) => fs
@@ -46,7 +47,7 @@ exports.getRepos = (bases) => __awaiter(this, void 0, void 0, function* () {
             if (base in dotfile.bases)
                 repos = repos.concat(Object.keys(dotfile.bases[base].repos));
             else
-                console.log(chalk_1.default.red(`${base} is not a base`));
+                logger_1.logger.info(chalk_1.default.red(`${base} is not a base`));
         });
     }
     else {
@@ -62,7 +63,7 @@ exports.filter = (bases) => {
     bases.forEach(base => {
         base = path.resolve(et(base));
         if (!fs.existsSync(base)) {
-            console.log(chalk_1.default.red(`${base} does not exist`));
+            logger_1.logger.info(chalk_1.default.red(`${base} does not exist`));
             return;
         }
         const dirs = base.split(path.sep);
@@ -88,13 +89,13 @@ exports.listBases = (dotfile) => {
             break;
         }
     }
-    Object.keys(dotfile.bases).forEach(base => console.log(base));
+    Object.keys(dotfile.bases).forEach(base => logger_1.logger.info(base));
 };
-exports.listRepos = (bases) => exports.getRepos(bases).then(b => b.forEach(base => console.log(base)));
+exports.listRepos = (bases) => exports.getRepos(bases).then(b => b.forEach(base => logger_1.logger.info(base)));
 exports.processContextBase = (base, dotfile) => {
     const result = fuzzy.filter(base, Object.keys(dotfile.bases));
     if (!result.length)
-        return console.log(chalk_1.default.red(`Could not match: ${base} to an existing base`));
+        return logger_1.logger.info(chalk_1.default.red(`Could not match: ${base} to an existing base`));
     dotfile.context.base = result[0].string;
     dotfile.context.repo = {};
     return exports.dumpDotfile(dotfile);
@@ -102,11 +103,11 @@ exports.processContextBase = (base, dotfile) => {
 exports.processContextRepo = (repo, dotfile) => {
     const contextBase = dotfile.context.base;
     if (!contextBase)
-        return console.log(chalk_1.default.red(`Please set the context`));
+        return logger_1.logger.info(chalk_1.default.red(`Please set the context`));
     const repoKeys = Object.keys(dotfile.bases[contextBase].repos);
     const result = fuzzy.filter(repo, repoKeys);
     if (!result.length)
-        return console.log(chalk_1.default.red(`Could not match: ${repo} to an existing repo in ${contextBase}`));
+        return logger_1.logger.info(chalk_1.default.red(`Could not match: ${repo} to an existing repo in ${contextBase}`));
     dotfile.context.repo = {
         name: result[0].string,
         path: dotfile.bases[contextBase].repos[result[0].string].path
@@ -118,13 +119,16 @@ exports.runCommand = (command, dotfile) => {
     const repo = dotfile.context.repo;
     if (!Object.getOwnPropertyNames(repo).length) {
         commands_1.rebase();
-        return console.log(chalk_1.default.red(`Context repo is missing!`));
+        logger_1.logger.info(chalk_1.default.red(`Context repo is missing!`));
+        return 1;
     }
     const spaceEscapedRepo = repo.path.replace(/ /g, '\\ ');
     command = `git -C ${spaceEscapedRepo} ${command}`;
     const code = shell.exec(command).code;
-    if (code !== 0)
-        return console.log(chalk_1.default.red(`Command: ${command} failed!`));
+    if (code !== 0) {
+        logger_1.logger.info(chalk_1.default.red(`Command: ${command} failed!`));
+        return code;
+    }
     return code;
 };
 exports.repoEmpty = repo => {
@@ -164,18 +168,18 @@ exports.unpushed = (repo) => {
 };
 exports.getDotfile = () => __awaiter(this, void 0, void 0, function* () {
     if (!fs.existsSync(exports.dotpath)) {
-        console.log(chalk_1.default.red(`Error: ~/.gamma.json has been corrupted. Rebuilding...`));
+        logger_1.logger.info(chalk_1.default.red(`Error: ~/.gamma.json has been corrupted. Rebuilding...`));
         const dotfile = yield commands_1.init();
-        console.log(chalk_1.default.green(`~/.gamma.json has been rebuilt`));
+        logger_1.logger.info(chalk_1.default.green(`~/.gamma.json has been rebuilt`));
         return [dotfile, true];
     }
     else {
         return new Promise((resolve, reject) => {
             fs.readFile(exports.dotpath, (err, data) => __awaiter(this, void 0, void 0, function* () {
                 if (err) {
-                    console.log(chalk_1.default.red(`Error: ~/.gamma.json has been corrupted. Rebuilding...`));
+                    logger_1.logger.info(chalk_1.default.red(`Error: ~/.gamma.json has been corrupted. Rebuilding...`));
                     const dotfile = yield commands_1.init();
-                    console.log(chalk_1.default.green(`~/.gamma.json has been rebuilt`));
+                    logger_1.logger.info(chalk_1.default.green(`~/.gamma.json has been rebuilt`));
                     return reject([dotfile, true]);
                 }
                 try {
@@ -183,9 +187,9 @@ exports.getDotfile = () => __awaiter(this, void 0, void 0, function* () {
                     return resolve([dotfile, false]);
                 }
                 catch (error) {
-                    console.log(chalk_1.default.red(`Error removing bases: ~/.gamma.json has been corrupted. Rebuilding...`));
+                    logger_1.logger.info(chalk_1.default.red(`Error removing bases: ~/.gamma.json has been corrupted. Rebuilding...`));
                     const dotfile = yield commands_1.init();
-                    console.log(chalk_1.default.green(`~/.gamma.json has been rebuilt`));
+                    logger_1.logger.info(chalk_1.default.green(`~/.gamma.json has been rebuilt`));
                     return reject([dotfile, true]);
                 }
             }));
