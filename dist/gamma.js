@@ -3,8 +3,12 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 const program = require("commander");
 const commands_1 = require("./commands");
+const logger_1 = require("./logger");
 const initProgram = () => {
-    program.version('0.0.6');
+    program.version('0.0.7');
+    program.option('-s, --silent', 'Silence all output', false).on('option:silent', function () {
+        logger_1.logger.silent = this.silent;
+    });
     program
         .command('list [bases...]')
         .alias('l')
@@ -28,7 +32,7 @@ const initProgram = () => {
         .description(`Installs the 'ad' command, which cd's into a git repo fuzzy matching a repo in the context base`)
         .action(commands_1.install);
     program
-        .command('add <base> [otherBases...]')
+        .command('add <bases...>')
         .alias('a')
         .description('Adds the specified bases as well as all git repos in them')
         .action(commands_1.add);

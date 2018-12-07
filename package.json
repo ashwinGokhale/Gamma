@@ -1,6 +1,6 @@
 {
 	"name": "gamma-cli",
-	"version": "0.0.6",
+	"version": "0.0.7",
 	"description": "A tool for managing all git repos on your local machine",
 	"scripts": {
 		"test": "jest",
@@ -37,7 +37,6 @@
 		"babel-cli": "^6.26.0",
 		"babel-core": "^6.26.3",
 		"babel-preset-es2015": "^6.24.1",
-		"callsites": "^3.0.0",
 		"gulp": "^4.0.0",
 		"gulp-babel": "^7.0.0",
 		"gulp-concat": "^2.6.1",
@@ -45,8 +44,6 @@
 		"gulp-uglify": "^3.0.0",
 		"jest": "^23.6.0",
 		"memfs": "^2.14.1",
-		"metro-memory-fs": "^0.50.0",
-		"mock-fs": "^4.7.0",
 		"prettier": "^1.15.3",
 		"rimraf": "^2.6.2",
 		"ts-jest": "^23.10.5",
@@ -68,6 +65,7 @@
 		"readline": "^1.3.0",
 		"shelljs": "^0.7.8",
 		"typescript": "^3.1.6",
-		"user-startup": "^0.2.2"
+		"user-startup": "^0.2.2",
+		"winston": "^3.1.0"
 	}
 }

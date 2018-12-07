@@ -5,4 +5,6 @@ const fs = {
 	...memfs.fs
 };
 
+jest.mock('fs', () => fs);
+
 module.exports = fs;

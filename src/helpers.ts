@@ -5,9 +5,10 @@ import * as fs from 'fs';
 import * as glob from 'glob';
 import * as shell from 'shelljs';
 import * as fuzzy from 'fuzzy';
-import { rebase, init } from './commands';
 import { spawn, execSync } from 'child_process';
+import { rebase, init } from './commands';
 import { IDotfile } from './dotfile';
+import { logger } from './logger';
 
 export const dotpath: string = et('~/.gamma.json');
 
@@ -21,21 +22,21 @@ export const getDirectories = (p: string) =>
 		.filter(f => fs.statSync(path.join(p, f)).isDirectory() && !f.startsWith('.'));
 
 export const findRepos = (bases: string[], dotfile: IDotfile) => {
-	const repoNames = {};
+	const basesWithRepoNames: { [x: string]: string[] } = {};
 	bases.forEach(base => {
 		base = path.resolve(et(base));
 		const repos = {};
-		repoNames[base] = [];
+		basesWithRepoNames[base] = [];
 		glob.sync(`${base}/**/.git`, { dot: true }).forEach(repoPath => {
 			// Cut off /.git from the filename
 			repoPath = repoPath.slice(0, -5);
 			const repoName = path.basename(repoPath);
 			repos[repoName] = { base, path: repoPath };
-			repoNames[base].push(repoName);
+			basesWithRepoNames[base].push(repoName);
 		});
 		dotfile.bases[base].repos = repos;
 	});
-	return [dotfile, repoNames];
+	return [dotfile, basesWithRepoNames];
 };
 
 export const getRepos = async (bases: string[]) => {
@@ -192,13 +193,39 @@ export const unpushed = (repo: string) => {
 export const getDotfile = async (): Promise<[IDotfile, boolean]> => {
 	// export const getDotfile = () => {
 	if (!fs.existsSync(dotpath)) {
-		console.log(
-			chalk.red(`Error removing bases: ~/.gamma.json has been corrupted. Rebuilding...`)
-		);
-		const dotfile = init();
+		console.log(chalk.red(`Error: ~/.gamma.json has been corrupted. Rebuilding...`));
+		const dotfile = await init();
 		console.log(chalk.green(`~/.gamma.json has been rebuilt`));
-		return [await dotfile, true];
-	} else return [require(dotpath), false];
+		return [dotfile, true];
+	} else {
+		return new Promise<[IDotfile, boolean]>((resolve, reject) => {
+			fs.readFile(dotpath, async (err, data) => {
+				if (err) {
+					console.log(
+						chalk.red(`Error: ~/.gamma.json has been corrupted. Rebuilding...`)
+					);
+					const dotfile = await init();
+					console.log(chalk.green(`~/.gamma.json has been rebuilt`));
+					return reject([dotfile, true]);
+				}
+				try {
+					const dotfile: IDotfile = JSON.parse(data.toString());
+					// logger.info(chalk.yellow('Created dotfile: %j'), dotfile);
+					return resolve([dotfile, false]);
+				} catch (error) {
+					console.log(
+						chalk.red(
+							`Error removing bases: ~/.gamma.json has been corrupted. Rebuilding...`
+						)
+					);
+					const dotfile = await init();
+					console.log(chalk.green(`~/.gamma.json has been rebuilt`));
+					return reject([dotfile, true]);
+				}
+			});
+		});
+		// return [require(dotpath), false];
+	}
 };
 
 export const dumpDotfile = (dotfile: IDotfile): Promise<IDotfile> => {

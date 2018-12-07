@@ -15,9 +15,15 @@ import {
 	status,
 	test
 } from './commands';
+import { logger } from './logger';
 
 const initProgram = () => {
-	program.version('0.0.6');
+	program.version('0.0.7');
+
+	// tslint:disable-next-line:only-arrow-functions
+	program.option('-s, --silent', 'Silence all output', false).on('option:silent', function() {
+		logger.silent = this.silent;
+	});
 
 	program
 		.command('list [bases...]')
@@ -48,7 +54,8 @@ const initProgram = () => {
 		.action(install);
 
 	program
-		.command('add <base> [otherBases...]')
+		// .command('add <base> [otherBases...]')
+		.command('add <bases...>')
 		.alias('a')
 		.description('Adds the specified bases as well as all git repos in them')
 		.action(add);

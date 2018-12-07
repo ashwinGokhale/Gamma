@@ -20,10 +20,8 @@ const ps = require("ps-node");
 const logUpdate = require("log-update");
 const child_process_1 = require("child_process");
 const helpers_1 = require("./helpers");
-exports.add = (base, bases) => __awaiter(this, void 0, void 0, function* () {
-    const repoNames = [];
-    let [dotfile] = yield helpers_1.getDotfile();
-    bases = bases.concat(base);
+exports.add = (bases) => __awaiter(this, void 0, void 0, function* () {
+    const [dotfile] = yield helpers_1.getDotfile();
     logUpdate(chalk_1.default.yellow('Adding bases...'));
     bases = helpers_1.filter(bases.map(b => path.resolve(et(b))).sort((a, b) => a.length - b.length));
     let toIndex = [];
@@ -49,14 +47,16 @@ exports.add = (base, bases) => __awaiter(this, void 0, void 0, function* () {
             toIndex.push(base);
         }
     });
-    [dotfile, repoNames] = helpers_1.findRepos(toIndex, dotfile);
+    const [updatedDotfile, basesWithRepoNames] = helpers_1.findRepos(toIndex, dotfile);
     logUpdate.clear();
-    Object.keys(repoNames).forEach(base => {
+    Object.keys(basesWithRepoNames).forEach(base => {
         console.log(chalk_1.default.green(`Base added: ${base}`));
-        const names = repoNames[base].map((name, num) => `  ${num + 1}) ${name}`).join('\n');
+        const names = basesWithRepoNames[base]
+            .map((name, num) => `  ${num + 1}) ${name}`)
+            .join('\n');
         console.log(chalk_1.default.green(`Repos added: \n${names ? names : '  None'}`));
     });
-    return helpers_1.dumpDotfile(dotfile);
+    return helpers_1.dumpDotfile(updatedDotfile);
 });
 exports.remove = (base, bases) => __awaiter(this, void 0, void 0, function* () {
     child_process_1.spawn('gamma', ['rebase'], { detached: true, stdio: 'ignore' }).unref();
@@ -294,7 +294,7 @@ exports.status = () => __awaiter(this, void 0, void 0, function* () {
     });
     return dotfile;
 });
-exports.test = () => {
-    console.log('Testing just changed');
+exports.test = bases => {
+    console.log('Testing just changed:', bases);
 };
 //# sourceMappingURL=commands.js.map

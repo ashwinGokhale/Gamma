@@ -25,15 +25,14 @@ import {
 	repoEmpty,
 	commitPending
 } from './helpers';
+import { logger } from './logger';
 
 // CLI commands
-export const add = async (base: string, bases: string[]) => {
-	// Adds the bases and finds all repos in it.
-	// Attempt to load the dotfile
-	const repoNames = [];
-	let [dotfile] = await getDotfile();
+// export const add = async (base: string, bases: string[]) => {
+export const add = async (bases: string[]) => {
+	const [dotfile] = await getDotfile();
 
-	bases = bases.concat(base);
+	// bases = bases.concat(base);
 
 	// TODO: Add a spinner because glob is slow
 	logUpdate(chalk.yellow('Adding bases...'));
@@ -68,18 +67,20 @@ export const add = async (base: string, bases: string[]) => {
 	});
 
 	// Index the new bases for repos
-	[dotfile, repoNames as any] = findRepos(toIndex, dotfile);
+	const [updatedDotfile, basesWithRepoNames] = findRepos(toIndex, dotfile);
 
 	logUpdate.clear();
 	// Format the output and print it
-	Object.keys(repoNames).forEach(base => {
+	Object.keys(basesWithRepoNames).forEach(base => {
 		console.log(chalk.green(`Base added: ${base}`));
-		const names = repoNames[base].map((name, num) => `  ${num + 1}) ${name}`).join('\n');
+		const names = basesWithRepoNames[base]
+			.map((name, num) => `  ${num + 1}) ${name}`)
+			.join('\n');
 		console.log(chalk.green(`Repos added: \n${names ? names : '  None'}`));
 	});
 
 	// Write the dotfile back
-	return dumpDotfile(dotfile);
+	return dumpDotfile(updatedDotfile);
 };
 
 export const remove = async (base: string, bases: string[]) => {
@@ -125,7 +126,6 @@ export const list = async (bases: string[], options) => {
 				dotfile.context.repo.name ? dotfile.context.repo.name : ''
 			}`
 		);
-
 	return listRepos(bases);
 };
 
@@ -385,6 +385,6 @@ export const status = async () => {
 	return dotfile;
 };
 
-export const test = () => {
-	console.log('Testing just changed');
+export const test = bases => {
+	console.log('Testing just changed:', bases);
 };
