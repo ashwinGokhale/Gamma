@@ -1,12 +1,13 @@
 import 'jest';
 jest.mock('fs');
-import { vol } from 'memfs';
-import * as fs from 'fs';
+import { vol, fs } from 'memfs';
+// import * as fs from 'fs';
 import { dotpath } from '../src/helpers';
 import { init } from '../src/commands';
 
 describe('Init tests', () => {
 	beforeEach(() => {
+		vol.reset();
 		vol.fromJSON({
 			[dotpath]: ''
 		});
@@ -17,9 +18,5 @@ describe('Init tests', () => {
 		const readDotFile = fs.readFileSync(dotpath).toString();
 		const dotFileObject = JSON.parse(readDotFile);
 		expect(dotfile).toEqual(dotFileObject);
-	});
-
-	afterEach(() => {
-		vol.reset();
 	});
 });

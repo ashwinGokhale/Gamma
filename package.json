@@ -3,7 +3,7 @@
 	"version": "0.0.7",
 	"description": "A tool for managing all git repos on your local machine",
 	"scripts": {
-		"test": "jest",
+		"test": "NODE_ENV=test jest",
 		"build": "rimraf dist/ && babel ./src --out-dir dist/ --minified --compact --ignore ./node_modules,./.babelrc,./package.json,./npm-debug.log --copy-files",
 		"compile": "tsc",
 		"dev": "tsc -w",

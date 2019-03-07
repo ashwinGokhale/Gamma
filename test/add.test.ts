@@ -1,7 +1,6 @@
 import 'jest';
-import * as memfs from 'memfs';
+import * as fs from 'memfs';
 jest.mock('fs');
-import * as fs from 'fs';
 import { generateFakeFiles } from './helpers';
 import { dotpath, getDotfile } from '../src/helpers';
 import { init, add } from '../src/commands';
@@ -11,23 +10,25 @@ const REPOS_PER_BASE = 4;
 
 describe('Add tests', () => {
 	beforeEach(async () => {
+		fs.vol.reset();
 		const fakeFiles = generateFakeFiles(NUM_BASES, REPOS_PER_BASE);
 		fakeFiles[dotpath] = '';
-		memfs.vol.fromJSON(fakeFiles);
-		// mock(fakeFiles);
-		await init();
+		fs.vol.fromJSON(fakeFiles);
+		return init();
 	});
 
 	it('Successfully gets all files', async () => {
-		const [dotfileBefore] = await getDotfile();
-		console.log('Dotfile before:', dotfileBefore);
-		await add([`/test/base${NUM_BASES-1}`]);
-		const [dotfileAfter] = await getDotfile();
-		console.log('Dotfile after:', dotfileAfter);
-	});
+		const [before] = await getDotfile();
+		const bases = [`/test/base${NUM_BASES - 1}`];
+		await add(bases);
+		const [after] = await getDotfile();
+		expect(before).not.toEqual(after);
+		const numBases = Object.keys(after.bases).length;
 
-	afterEach(() => {
-		// mock.restore();
-		memfs.vol.reset();
+		expect(numBases).toEqual(bases.length);
+		bases.forEach(base => {
+			expect(after.bases).toHaveProperty(base);
+			expect(Object.keys(after.bases[base].repos).length).toEqual(REPOS_PER_BASE);
+		});
 	});
 });

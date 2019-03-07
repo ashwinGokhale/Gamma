@@ -80,15 +80,15 @@ export const add = async (bases: string[]) => {
 	return dumpDotfile(updatedDotfile);
 };
 
-export const remove = async (base: string, bases: string[]) => {
+export const remove = async (baseToDelete: string, bases: string[] = []) => {
 	// Asynchronously rebase
-	spawn('gamma', ['rebase'], { detached: true, stdio: 'ignore' }).unref();
+	// spawn('gamma', ['rebase'], { detached: true, stdio: 'ignore' }).unref();
 
 	// Removes a base, including all repos in it
 	const [dotfile, error] = await getDotfile();
 	if (error) return dotfile;
 
-	bases.concat(base).forEach(base => {
+	bases.concat(baseToDelete).forEach(base => {
 		const basePath = path.resolve(et(base));
 		if (base === dotfile.context.base) dotfile.context = { base: '', repo: {} };
 

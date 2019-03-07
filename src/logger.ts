@@ -1,17 +1,13 @@
 import { createLogger, format, transports, config } from 'winston';
-const { combine, timestamp, label, printf } = format;
+const { combine, printf } = format;
 
 const myFormat = printf(info => {
 	return info.message;
 });
 
 export const logger = createLogger({
-	format: combine(
-		format.splat(),
-		myFormat
-		// format.simple()
-	),
+	format: combine(format.splat(), myFormat),
 	transports: [new transports.Console()],
 	levels: config.cli.levels,
-	silent: !!process.env.SILENT
+	silent: process.env.NODE_ENV === 'test' ? true : process.env.SILENT ? true : !module.parent
 });
